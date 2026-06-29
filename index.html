@@ -306,12 +306,10 @@
   .friend-card .fc-title{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--cream);line-height:1.25}
   .friend-card .fc-meta{font-family:'Courier Prime',monospace;font-size:10px;color:var(--cream-dim);margin-top:2px}
   .fc-overlay-btns{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:4px;z-index:5;opacity:0;pointer-events:none}
-  .friend-card:hover .fc-overlay-btns,.friend-card.revealed .fc-overlay-btns{opacity:1;pointer-events:auto}
+  .friend-card:hover .fc-overlay-btns{opacity:1;pointer-events:auto}
   .fc-icon-btn{width:30px;height:30px;border-radius:50%;background:rgba(13,13,13,.78);border:1px solid var(--gold-dim);color:var(--cream);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;backdrop-filter:blur(3px)}
   .fc-icon-btn:hover{background:var(--gold);color:var(--bg)}
   .fc-icon-btn.fav-active{color:#e0566f;border-color:#e0566f}
-  .fc-icon-btn[data-action='remove']{display:none}
-  .friend-card.revealed .fc-icon-btn[data-action='remove']{display:flex}
   .friend-empty{text-align:center;padding:40px 20px;color:var(--cream-dim);font-size:13px}
   .friend-parse-error{background:rgba(192,57,43,.10);border:1px solid var(--red-bright);border-radius:4px;padding:10px 14px;font-size:12px;color:#e08080;margin-top:10px}
 
@@ -3315,7 +3313,6 @@ async function renderFriendResults(albums){
             <div class="fc-overlay-btns">
               <button class="fc-icon-btn ${a.fav?'fav-active':''}" data-action="fav" data-idx="${i}" title="${a.fav?'Unfavorite':'Favorite'}">${a.fav?'♥':'♡'}</button>
               <button class="fc-icon-btn" data-action="view" data-idx="${i}" title="View">👁</button>
-              <button class="fc-icon-btn" data-action="remove" data-idx="${i}" title="Remove from this crate">🗑</button>
             </div>
           </div>
           <div class="fc-body">
@@ -3333,17 +3330,6 @@ async function renderFriendResults(albums){
     const idx=+card.dataset.idx;
     card.addEventListener("click",e=>{
       if(e.target.closest(".fc-overlay-btns"))return;
-      // On devices that support hover (mouse/trackpad), hovering already reveals
-      // the heart/view icons, so a click goes straight into the album. On
-      // touch-only devices (no hover), the first tap reveals the heart/view/
-      // remove icons instead of opening the album; a second tap (or tapping
-      // the 👁 view button directly) opens it.
-      const canHover=matchMedia("(hover:hover) and (pointer:fine)").matches;
-      if(!canHover&&!card.classList.contains("revealed")){
-        document.querySelectorAll(".friend-card.revealed").forEach(c=>{if(c!==card)c.classList.remove("revealed")});
-        card.classList.add("revealed");
-        return;
-      }
       document.getElementById("friendModal").classList.remove("open");openFriendDetail(idx);
     });
     card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();document.getElementById("friendModal").classList.remove("open");openFriendDetail(idx)}});
@@ -3364,13 +3350,6 @@ async function renderFriendResults(albums){
       openFriendDetail(+btn.dataset.idx);
     });
   });
-  document.getElementById("friendGrid").querySelectorAll("[data-action='remove']").forEach(btn=>{
-    btn.addEventListener("click",e=>{
-      e.stopPropagation();
-      removeFriendAlbumByIdx(+btn.dataset.idx);
-    });
-  });
-  // Tapping anywhere outside a revealed friend card un-reveals it (listener attached once, below this function)
 
   // Load covers progressively
   for(let i=0;i<albums.length;i++){
@@ -3383,13 +3362,6 @@ async function renderFriendResults(albums){
     if(i%5===4)await new Promise(r=>setTimeout(r,50)); // small batch pause
   }
 }
-
-// Attached once at load: tapping anywhere outside a revealed friend card un-reveals it.
-document.addEventListener("click",e=>{
-  if(!e.target.closest(".friend-card")){
-    document.querySelectorAll(".friend-card.revealed").forEach(c=>c.classList.remove("revealed"));
-  }
-});
 
 function renderFriendBanner(albums){
   const wrap=document.getElementById("friendBannerWrap");
