@@ -310,6 +310,8 @@
   .fc-icon-btn{width:30px;height:30px;border-radius:50%;background:rgba(13,13,13,.78);border:1px solid var(--gold-dim);color:var(--cream);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;backdrop-filter:blur(3px)}
   .fc-icon-btn:hover{background:var(--gold);color:var(--bg)}
   .fc-icon-btn.fav-active{color:#e0566f;border-color:#e0566f}
+  .fc-icon-btn[data-action='remove']{display:none}
+  .friend-card.revealed .fc-icon-btn[data-action='remove']{display:flex}
   .friend-empty{text-align:center;padding:40px 20px;color:var(--cream-dim);font-size:13px}
   .friend-parse-error{background:rgba(192,57,43,.10);border:1px solid var(--red-bright);border-radius:4px;padding:10px 14px;font-size:12px;color:#e08080;margin-top:10px}
 
@@ -1876,12 +1878,7 @@ function removeFriendAlbumFromModal(){
   const item=activeFriendAlbums[currentFriendIdx];
   if(item&&!confirm(`Remove "${item.title}" from this crate?`))return;
   activeFriendAlbums.splice(currentFriendIdx,1);
-  // Persist removal if this is a saved crate
-  if(activeFriendCrateId!=null){
-    const crates=loadFriendCrates();
-    const idx=crates.findIndex(c=>c.id===activeFriendCrateId);
-    if(idx>-1){crates[idx].albums=activeFriendAlbums;saveFriendCrates(crates);}
-  }
+  autosaveFriendCrate();
   document.getElementById("detailModal").classList.remove("open");
   currentFriendIdx=null;
   showToast(item?`Removed "${item.title}"`:"Removed from crate");
@@ -1892,11 +1889,7 @@ function removeFriendAlbumByIdx(idx){
   const item=activeFriendAlbums[idx];if(!item)return;
   if(!confirm(`Remove "${item.title}" from this crate?`))return;
   activeFriendAlbums.splice(idx,1);
-  if(activeFriendCrateId!=null){
-    const crates=loadFriendCrates();
-    const ci=crates.findIndex(c=>c.id===activeFriendCrateId);
-    if(ci>-1){crates[ci].albums=activeFriendAlbums;saveFriendCrates(crates);}
-  }
+  autosaveFriendCrate();
   renderFriendResults(activeFriendAlbums);
   showToast(`Removed "${item.title}"`);
 }
@@ -1904,6 +1897,13 @@ function removeFriendAlbumByIdx(idx){
 // Reopens the friend modal on the Browse tab without resetting scroll —
 // used after closing the detail view for a friend's album so the user lands
 // back where they were instead of being sent all the way back to the top.
+function autosaveFriendCrate(){
+  if(activeFriendCrateId==null)return;
+  const crates=loadFriendCrates();
+  const idx=crates.findIndex(c=>c.id===activeFriendCrateId);
+  if(idx>-1){crates[idx].albums=activeFriendAlbums;saveFriendCrates(crates);}
+}
+
 function reopenFriendModalToBrowse(){
   document.getElementById("friendModal").classList.add("open");
   document.querySelectorAll(".friend-tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.ftab==="browse"));
@@ -3351,10 +3351,7 @@ async function renderFriendResults(albums){
       e.stopPropagation();
       const i=+btn.dataset.idx,item=activeFriendAlbums[i];if(!item)return;
       item.fav=!item.fav;
-      if(activeFriendCrateId!=null){
-        const crates=loadFriendCrates();const ci=crates.findIndex(c=>c.id===activeFriendCrateId);
-        if(ci>-1){crates[ci].albums=activeFriendAlbums;saveFriendCrates(crates);}
-      }
+      autosaveFriendCrate();
       renderFriendResults(activeFriendAlbums);
     });
   });
@@ -3403,7 +3400,7 @@ function renderFriendBanner(albums){
       <span style="display:flex;align-items:center;gap:8px">🎵 <strong style="color:var(--cream)">${escAttr(name)}</strong> — ${albums.length} record${albums.length!==1?'s':''}</span>
       <span style="display:flex;gap:8px;flex-shrink:0">
         ${saved
-          ? `<button class="friend-save-crate-btn" onclick="updateSavedFriendCrate()" style="background:rgba(127,184,160,.12);color:#7fb8a0;border:1px solid #3a6a55;border-radius:3px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer">💾 Save Changes</button>`
+          ? `<span style="font-size:10px;color:var(--cream-dim);font-style:italic;display:flex;align-items:center;gap:4px">✓ Changes saved automatically</span>`
           : `<button class="friend-save-crate-btn" onclick="promptSaveFriendCrate()" style="background:rgba(127,184,160,.12);color:#7fb8a0;border:1px solid #3a6a55;border-radius:3px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer">💾 Save to Friends</button>`
         }
       </span>
@@ -3421,18 +3418,6 @@ function promptSaveFriendCrate(){
   renderFriendBanner(activeFriendAlbums);
   renderSavedCratesList();
   showToast(`Saved as "${name.trim()}"!`);
-}
-
-function updateSavedFriendCrate(){
-  if(activeFriendCrateId===null)return;
-  const crates=loadFriendCrates();
-  const idx=crates.findIndex(c=>c.id===activeFriendCrateId);
-  if(idx===-1)return;
-  crates[idx].albums=activeFriendAlbums;
-  saveFriendCrates(crates);
-  renderFriendBanner(activeFriendAlbums);
-  renderSavedCratesList();
-  showToast("Crate updated!");
 }
 
 // ── LIVE SEARCH FOR FRIEND'S CRATE ADD ──
@@ -3466,6 +3451,7 @@ function addAlbumToFriendCrateFromSearch(item){
   }
   const artist=item.artistName||"Unknown Artist",title=item.collectionName||"Unknown Album";
   activeFriendAlbums.push({artist,title,year,genre,fav:false});
+  autosaveFriendCrate();
   document.getElementById("friendAddSearchInput").value="";
   _friendAddSelectedItem=null;
   renderFriendResults(activeFriendAlbums);
@@ -3489,6 +3475,7 @@ async function addAlbumToFriendCrateManual(){
     }
   }catch{}
   activeFriendAlbums.push({artist,title,year,genre,fav:false});
+  autosaveFriendCrate();
   document.getElementById("friendAddSearchInput").value="";
   renderFriendResults(activeFriendAlbums);
   showToast(`Added ${artist} — ${title}`);
