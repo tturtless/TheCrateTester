@@ -649,8 +649,10 @@
       <textarea class="share-textarea" id="shareTextarea" readonly></textarea>
       <div class="share-actions">
         <button class="share-copy-btn" id="shareCopyBtn">📋 Copy to Clipboard</button>
+        <button class="share-copy-btn" id="shareLinkBtn">🔗 Copy as Link</button>
       </div>
       <div class="share-meta" id="shareMeta"></div>
+      <div class="share-meta" id="shareLinkMeta" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -664,6 +666,11 @@
       <p>Paste in the text a friend shared from their crate to browse it here. This is temporary and won't be saved.</p>
     </div>
     <div class="friend-body" id="friendBody">
+      <input type="text" class="share-textarea" id="friendLinkInput" placeholder="Paste a shared crate link here…" style="min-height:auto;height:auto;padding:10px 12px;margin-bottom:10px">
+      <div class="share-actions" style="margin-top:0;margin-bottom:16px">
+        <button class="friend-view-btn" id="friendLinkBtn">🔗 Open Link</button>
+      </div>
+      <div class="friend-or-divider" style="font-size:11px;color:var(--cream-dim);text-align:center;margin:4px 0 14px;text-transform:uppercase;letter-spacing:.1em">— or paste text —</div>
       <textarea class="share-textarea" id="friendTextarea" placeholder="Paste your friend's crate text here…"></textarea>
       <div class="share-actions">
         <button class="friend-view-btn" id="friendViewBtn">👀 View Crate</button>
@@ -2912,10 +2919,39 @@ function buildShareText(){
   return lines.join("\n");
 }
 
+// Compact encode: array of [artist,title,year,genre,fav] tuples → UTF-8 safe base64url.
+function encodeCrateLink(albums){
+  const tuples=albums.map(a=>[a.artist,a.title,a.year,a.genre,favorites.has(a.id)?1:0]);
+  const json=JSON.stringify(tuples);
+  const utf8Bytes=new TextEncoder().encode(json);
+  let binary="";
+  utf8Bytes.forEach(b=>binary+=String.fromCharCode(b));
+  const b64=btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  return b64;
+}
+function decodeCrateLink(code){
+  const b64=code.replace(/-/g,"+").replace(/_/g,"/");
+  const pad=b64.length%4===0?"":"=".repeat(4-(b64.length%4));
+  const binary=atob(b64+pad);
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  const json=new TextDecoder().decode(bytes);
+  const tuples=JSON.parse(json);
+  if(!Array.isArray(tuples))throw new Error("bad format");
+  return tuples.map(t=>({artist:String(t[0]||""),title:String(t[1]||""),year:String(t[2]||""),genre:String(t[3]||"Unsorted"),fav:!!t[4]}));
+}
+function buildShareLink(){
+  const code=encodeCrateLink(vinylCollection);
+  const url=new URL(window.location.href);
+  url.hash="share="+code;
+  return url.toString();
+}
+
 document.getElementById("shareCrateBtn").addEventListener("click",()=>{
   const text=buildShareText();
   document.getElementById("shareTextarea").value=text;
   document.getElementById("shareMeta").textContent=`${vinylCollection.length} record${vinylCollection.length!==1?'s':''} ready to share · ★ = favorite`;
+  document.getElementById("shareLinkMeta").style.display="none";
   document.getElementById("shareModal").classList.add("open");
 });
 document.getElementById("shareClose").addEventListener("click",()=>document.getElementById("shareModal").classList.remove("open"));
@@ -2929,6 +2965,28 @@ document.getElementById("shareCopyBtn").addEventListener("click",async()=>{
     ta.select();
     try{document.execCommand("copy");showToast("Copied! Send it to a friend.");}
     catch{showToast("Couldn't copy — select the text manually.")}
+  }
+});
+document.getElementById("shareLinkBtn").addEventListener("click",async()=>{
+  let link;
+  try{
+    link=buildShareLink();
+  }catch{
+    showToast("Couldn't build a link — try the text option instead.");
+    return;
+  }
+  const metaEl=document.getElementById("shareLinkMeta");
+  metaEl.style.display="block";
+  metaEl.textContent=`Link length: ${link.length} characters`;
+  try{
+    await navigator.clipboard.writeText(link);
+    showToast("Link copied! Send it to a friend.");
+  }catch{
+    const ta=document.getElementById("shareTextarea");
+    ta.value=link;
+    ta.select();
+    try{document.execCommand("copy");showToast("Link copied! Send it to a friend.");}
+    catch{showToast("Couldn't copy — link is in the box above, copy manually.")}
   }
 });
 
@@ -2956,7 +3014,7 @@ function renderFriendResults(albums){
   const errEl=document.getElementById("friendParseError");
   errEl.innerHTML="";
   if(!albums.length){
-    resultsEl.innerHTML=`<div class="friend-empty">No records could be read from that text. Make sure it was copied from the "Share My Crate" output.</div>`;
+    resultsEl.innerHTML=`<div class="friend-empty">No records could be read from that. Make sure it's a link or text copied from "Share My Crate".</div>`;
     return;
   }
   resultsEl.innerHTML=`
@@ -2969,6 +3027,29 @@ function renderFriendResults(albums){
           <div class="fc-meta">${escAttr(a.year)} · ${escAttr(a.genre)}${a.fav?' · ♥':''}</div>
         </div>`).join("")}
     </div>`;
+}
+
+function extractShareCodeFromInput(raw){
+  const trimmed=raw.trim();
+  if(!trimmed)return null;
+  const hashMatch=trimmed.match(/#share=([^&\s]+)/);
+  if(hashMatch)return hashMatch[1];
+  // Allow pasting the bare code too
+  if(/^[A-Za-z0-9_-]+$/.test(trimmed))return trimmed;
+  return null;
+}
+
+function openFriendModalWithCode(code){
+  document.getElementById("friendModal").classList.add("open");
+  const errEl=document.getElementById("friendParseError");
+  errEl.innerHTML="";
+  try{
+    const albums=decodeCrateLink(code);
+    renderFriendResults(albums);
+  }catch{
+    errEl.innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted. Ask your friend to resend it.</div>`;
+    document.getElementById("friendResults").innerHTML="";
+  }
 }
 
 document.getElementById("viewFriendBtn").addEventListener("click",()=>{
@@ -2985,13 +3066,39 @@ document.getElementById("friendViewBtn").addEventListener("click",()=>{
     return;
   }
   const albums=parseFriendCrateText(raw);
+  errEl.innerHTML="";
   renderFriendResults(albums);
+});
+document.getElementById("friendLinkBtn").addEventListener("click",()=>{
+  const raw=document.getElementById("friendLinkInput").value;
+  const errEl=document.getElementById("friendParseError");
+  const code=extractShareCodeFromInput(raw);
+  if(!code){
+    errEl.innerHTML=`<div class="friend-parse-error">Paste a valid shared crate link first.</div>`;
+    document.getElementById("friendResults").innerHTML="";
+    return;
+  }
+  try{
+    const albums=decodeCrateLink(code);
+    errEl.innerHTML="";
+    renderFriendResults(albums);
+  }catch{
+    errEl.innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted. Ask your friend to resend it.</div>`;
+    document.getElementById("friendResults").innerHTML="";
+  }
 });
 document.getElementById("friendClearBtn").addEventListener("click",()=>{
   document.getElementById("friendTextarea").value="";
+  document.getElementById("friendLinkInput").value="";
   document.getElementById("friendResults").innerHTML="";
   document.getElementById("friendParseError").innerHTML="";
 });
+
+// Auto-open friend view if the page was loaded with a #share= link
+(function checkIncomingShareLink(){
+  const m=window.location.hash.match(/share=([^&\s]+)/);
+  if(m)openFriendModalWithCode(m[1]);
+})();
 
 // ── TOAST ──
 let toastTimer=null;
