@@ -3333,10 +3333,13 @@ async function renderFriendResults(albums){
     const idx=+card.dataset.idx;
     card.addEventListener("click",e=>{
       if(e.target.closest(".fc-overlay-btns"))return;
-      // First click/tap reveals the heart/view/remove overlay instead of
-      // jumping straight into the album. A second click (or tapping the
-      // 👁 view button directly) opens it.
-      if(!card.classList.contains("revealed")){
+      // On devices that support hover (mouse/trackpad), hovering already reveals
+      // the heart/view icons, so a click goes straight into the album. On
+      // touch-only devices (no hover), the first tap reveals the heart/view/
+      // remove icons instead of opening the album; a second tap (or tapping
+      // the 👁 view button directly) opens it.
+      const canHover=matchMedia("(hover:hover) and (pointer:fine)").matches;
+      if(!canHover&&!card.classList.contains("revealed")){
         document.querySelectorAll(".friend-card.revealed").forEach(c=>{if(c!==card)c.classList.remove("revealed")});
         card.classList.add("revealed");
         return;
