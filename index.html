@@ -296,13 +296,48 @@
   .friend-clear-btn{background:none;color:var(--cream-dim);border:1px solid var(--border);border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:9px 16px;cursor:pointer;transition:border-color .2s,color .2s}
   .friend-clear-btn:hover{border-color:var(--red-bright);color:var(--red-bright)}
   .friend-banner{background:rgba(127,184,160,.10);border:1px solid #3a6a55;border-radius:4px;padding:10px 14px;font-size:12px;color:#9accb6;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-  .friend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-  .friend-card{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:10px 11px;display:flex;flex-direction:column;gap:3px}
+  .friend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .friend-card{background:var(--surface2);border:1px solid var(--border);border-radius:3px;overflow:hidden;display:flex;flex-direction:column}
+  .friend-card .fc-art{width:100%;aspect-ratio:1;object-fit:cover;background:var(--groove);display:block;flex-shrink:0}
+  .friend-card .fc-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px}
   .friend-card .fc-artist{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .friend-card .fc-title{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--cream);line-height:1.25}
   .friend-card .fc-meta{font-family:'Courier Prime',monospace;font-size:10px;color:var(--cream-dim);margin-top:2px}
   .friend-empty{text-align:center;padding:40px 20px;color:var(--cream-dim);font-size:13px}
   .friend-parse-error{background:rgba(192,57,43,.10);border:1px solid var(--red-bright);border-radius:4px;padding:10px 14px;font-size:12px;color:#e08080;margin-top:10px}
+
+  /* FRIEND MODAL TABS */
+  .friend-modal{max-width:780px}
+  .friend-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
+  .friend-tab-btn{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--cream-dim);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:11px 8px;cursor:pointer;transition:color .15s,border-color .15s}
+  .friend-tab-btn.active{color:#7fb8a0;border-bottom-color:#7fb8a0}
+  .friend-tab-btn:not(.active):hover{color:var(--cream)}
+  .friend-tab-panel{display:none;padding:18px 24px 24px}
+  .friend-tab-panel.active{display:block}
+
+  /* SAVED CRATES LIST */
+  .saved-crates-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .saved-crate-row{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:10px 12px;cursor:pointer;transition:border-color .15s}
+  .saved-crate-row:hover{border-color:#3a6a55}
+  .saved-crate-row.selected{border-color:#7fb8a0;background:rgba(127,184,160,.06)}
+  .scr-name{flex:1;font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--cream)}
+  .scr-count{font-family:'Courier Prime',monospace;font-size:11px;color:var(--cream-dim);flex-shrink:0}
+  .scr-rename-btn,.scr-delete-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--cream-dim);font-size:11px;font-family:'Inter',sans-serif;padding:3px 8px;cursor:pointer;transition:border-color .15s,color .15s;flex-shrink:0}
+  .scr-rename-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+  .scr-delete-btn:hover{border-color:var(--red-bright);color:var(--red-bright)}
+  .scr-rename-input{flex:1;background:var(--bg);border:1px solid var(--gold-dim);border-radius:3px;color:var(--cream);font-family:'Playfair Display',serif;font-size:14px;padding:3px 8px;outline:none}
+  .no-saved-crates{text-align:center;padding:32px 20px;color:var(--cream-dim);font-size:13px}
+
+  /* ADD ALBUM TO FRIEND CRATE */
+  .friend-add-section{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}
+  .friend-add-row{display:flex;gap:8px;margin-bottom:8px}
+  .friend-add-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--cream);font-family:'Inter',sans-serif;font-size:13px;padding:8px 12px;outline:none;transition:border-color .2s}
+  .friend-add-input:focus{border-color:#3a6a55}
+  .friend-add-input::placeholder{color:var(--cream-dim)}
+  .friend-add-btn{background:#7fb8a0;border:none;border-radius:3px;color:#0D0D0D;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:background .2s}
+  .friend-add-btn:hover{background:#9accb6}
+  .friend-save-crate-btn{background:rgba(127,184,160,.12);color:#7fb8a0;border:1px solid #3a6a55;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
+  .friend-save-crate-btn:hover{background:#7fb8a0;color:#0D0D0D;border-color:#7fb8a0}
   .stats-modal::-webkit-scrollbar{width:5px}
   .stats-modal::-webkit-scrollbar-track{background:var(--surface)}
   .stats-modal::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -643,7 +678,7 @@
     <button class="modal-close" id="shareClose">×</button>
     <div class="share-header">
       <h2>📤 Share My Crate</h2>
-      <p>Copy this text and send it to a friend — they can paste it into "View a Friend's Crate" to see what's in your stack.</p>
+      <p>Use "Copy as Link" to generate a link that opens directly on <strong>tturtless.github.io/AlbumCrate</strong> — friends can browse your crate without needing this file. Or copy the text to paste into "View a Friend's Crate".</p>
     </div>
     <div class="share-body">
       <textarea class="share-textarea" id="shareTextarea" readonly></textarea>
@@ -662,10 +697,19 @@
   <div class="friend-modal">
     <button class="modal-close" id="friendClose">×</button>
     <div class="friend-header">
-      <h2>👀 View a Friend's Crate</h2>
-      <p>Paste in the text a friend shared from their crate to browse it here. This is temporary and won't be saved.</p>
+      <h2>👀 Friends' Crates</h2>
+      <p>Load a shared link to browse a friend's collection — save it to keep their crate and add new albums as they get them.</p>
     </div>
-    <div class="friend-body" id="friendBody">
+
+    <!-- TABS -->
+    <div class="friend-tabs">
+      <button class="friend-tab-btn active" data-ftab="load">Load a Crate</button>
+      <button class="friend-tab-btn" data-ftab="saved">Saved Crates</button>
+      <button class="friend-tab-btn" data-ftab="browse" id="browseFriendTabBtn" style="display:none">Browse</button>
+    </div>
+
+    <!-- TAB: LOAD -->
+    <div class="friend-tab-panel active" id="ftab-load">
       <input type="text" class="share-textarea" id="friendLinkInput" placeholder="Paste a shared crate link here…" style="min-height:auto;height:auto;padding:10px 12px;margin-bottom:10px">
       <div class="share-actions" style="margin-top:0;margin-bottom:16px">
         <button class="friend-view-btn" id="friendLinkBtn">🔗 Open Link</button>
@@ -677,7 +721,37 @@
         <button class="friend-clear-btn" id="friendClearBtn">Clear</button>
       </div>
       <div id="friendParseError"></div>
+    </div>
+
+    <!-- TAB: SAVED CRATES -->
+    <div class="friend-tab-panel" id="ftab-saved">
+      <div class="saved-crates-list" id="savedCratesList"></div>
+      <div class="no-saved-crates" id="noSavedCrates" style="display:none">No saved crates yet — load a friend's link and save it.</div>
+    </div>
+
+    <!-- TAB: BROWSE (shown after loading) -->
+    <div class="friend-tab-panel" id="ftab-browse">
       <div id="friendResults"></div>
+
+      <!-- ADD ALBUM SECTION -->
+      <div class="friend-add-section" id="friendAddSection" style="display:none">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px">＋ Add a New Album</div>
+        <div class="friend-add-row">
+          <input class="friend-add-input" id="friendAddArtist" placeholder="Artist">
+          <input class="friend-add-input" id="friendAddTitle" placeholder="Album title">
+          <input class="friend-add-input" id="friendAddYear" placeholder="Year" style="max-width:72px">
+        </div>
+        <div class="friend-add-row" style="margin-bottom:0">
+          <select class="filter-select" id="friendAddGenre" style="flex:1;padding:8px 28px 8px 10px;font-size:12px">
+            <option>Classic Rock</option><option>Hard Rock</option><option>Heavy Metal</option>
+            <option>Progressive Rock</option><option>New Wave</option><option>Punk / Alternative</option>
+            <option>Pop</option><option>R&amp;B / Soul</option><option>Hip-Hop</option><option>Country</option>
+            <option>Singer-Songwriter</option><option>Soundtrack</option><option>Classical</option>
+            <option>Holiday</option><option>Compilation</option>
+          </select>
+          <button class="friend-add-btn" onclick="addAlbumToFriendCrate()">＋ Add Album</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -3009,7 +3083,7 @@ function decodeLegacyCrateLink(code){
 
 async function buildShareLink(){
   const code=await encodeCrateLink(vinylCollection);
-  const url=new URL(window.location.href);
+  const url=new URL("https://tturtless.github.io/AlbumCrate/");
   url.hash="share="+code;
   return url.toString();
 }
@@ -3058,8 +3132,6 @@ document.getElementById("shareLinkBtn").addEventListener("click",async()=>{
 });
 
 // ── VIEW A FRIEND'S CRATE ──
-// Parses lines of the form: Artist — Title (Year) [Genre] [★]
-// Tolerant of a plain " - " separator too, and ignores header/blank/--- lines.
 function parseFriendCrateText(raw){
   const lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   const albums=[];
@@ -3069,95 +3141,304 @@ function parseFriendCrateText(raw){
     if(/^\d+\s+records?$/i.test(line))return;
     if(/^-{2,}$/.test(line))return;
     const m=line.match(lineRe);
-    if(m){
-      albums.push({artist:m[1].trim(),title:m[2].trim(),year:m[3].trim(),genre:(m[4]||"Unsorted").trim(),fav:!!m[5]});
-    }
+    if(m){albums.push({artist:m[1].trim(),title:m[2].trim(),year:m[3].trim(),genre:(m[4]||"Unsorted").trim(),fav:!!m[5]});}
   });
   return albums;
 }
 
-function renderFriendResults(albums){
+// ── SAVED FRIEND CRATES (localStorage) ──
+const FRIEND_CRATES_KEY="crate_friend_crates_v1";
+function loadFriendCrates(){return lsGet(FRIEND_CRATES_KEY,[]);}
+function saveFriendCrates(crates){lsSet(FRIEND_CRATES_KEY,crates);}
+
+let activeFriendAlbums=[];   // currently browsed albums (may not be saved yet)
+let activeFriendCrateId=null; // null = unsaved session
+
+// ── COVER ART FOR FRIEND CARDS ──
+const friendCoverCache={};
+async function fetchFriendCover(artist,title){
+  const ck=(artist+"|"+title).toLowerCase();
+  // Check main caaCache first (shared with your own collection)
+  if(caaCache[ck])return caaCache[ck];
+  if(friendCoverCache[ck]!==undefined)return friendCoverCache[ck];
+  // Try the same DISCOGS_COVERS map
+  if(DISCOGS_COVERS[ck]){friendCoverCache[ck]=DISCOGS_COVERS[ck];return DISCOGS_COVERS[ck];}
+  // iTunes lookup
+  for(const q of buildSearchStrategies(artist,title)){
+    try{
+      const r=await fetch(`https://itunes.apple.com/search?term=${q}&entity=album&limit=10`);
+      if(!r.ok)continue;
+      const d=await r.json();
+      if(d.results&&d.results.length){
+        const normT=normCover(title),normA=normCover(artist);
+        const artistVariants=[normA,...(COVER_ARTIST_ALIASES[normA]||[])];
+        for(const res of d.results){
+          const rT=normCover(res.collectionName||""),rA=normCover(res.artistName||"");
+          const artistMatch=artistVariants.some(a=>rA===a||(a.length>2&&(rA.includes(a)||a.includes(rA))));
+          const titleMatch=rT===normT||(normT.length>2&&(rT.includes(normT)||normT.includes(rT)));
+          if(artistMatch&&titleMatch&&res.artworkUrl100){
+            const url=res.artworkUrl100.replace("100x100bb","300x300bb");
+            friendCoverCache[ck]=url;
+            return url;
+          }
+        }
+      }
+    }catch{}
+    await new Promise(r=>setTimeout(r,180));
+  }
+  friendCoverCache[ck]=null;
+  return null;
+}
+
+function getPlaceholderUrl(genre){return getPlaceholder(genre||"default");}
+
+async function renderFriendResults(albums){
   const resultsEl=document.getElementById("friendResults");
-  const errEl=document.getElementById("friendParseError");
-  errEl.innerHTML="";
+  document.getElementById("friendParseError").innerHTML="";
   if(!albums.length){
-    resultsEl.innerHTML=`<div class="friend-empty">No records could be read from that. Make sure it's a link or text copied from "Share My Crate".</div>`;
+    resultsEl.innerHTML=`<div class="friend-empty">No records could be read. Make sure it's a valid link or text from "Share My Crate".</div>`;
+    document.getElementById("friendAddSection").style.display="none";
     return;
   }
+
+  // Build grid with placeholder images first, then load covers async
   resultsEl.innerHTML=`
-    <div class="friend-banner"><span>🎵</span><span>Viewing ${albums.length} record${albums.length!==1?'s':''} from a friend's crate — temporary, nothing is saved.</span></div>
-    <div class="friend-grid">
-      ${albums.map(a=>`
-        <div class="friend-card">
-          <div class="fc-artist">${escAttr(a.artist)}</div>
-          <div class="fc-title">${escAttr(a.title)}</div>
-          <div class="fc-meta">${escAttr(a.year)} · ${escAttr(a.genre)}${a.fav?' · ♥':''}</div>
+    <div id="friendBannerWrap"></div>
+    <div class="friend-grid" id="friendGrid">
+      ${albums.map((a,i)=>`
+        <div class="friend-card" data-idx="${i}">
+          <img class="fc-art" id="fca-${i}" src="${escAttr(getPlaceholderUrl(a.genre))}" alt="" referrerpolicy="no-referrer">
+          <div class="fc-body">
+            <div class="fc-artist">${escAttr(a.artist)}</div>
+            <div class="fc-title">${escAttr(a.title)}</div>
+            <div class="fc-meta">${escAttr(a.year)} · ${escAttr(a.genre)}${a.fav?' · ♥':''}</div>
+          </div>
         </div>`).join("")}
     </div>`;
+
+  renderFriendBanner(albums);
+  document.getElementById("friendAddSection").style.display="block";
+
+  // Load covers progressively
+  for(let i=0;i<albums.length;i++){
+    const a=albums[i];
+    const img=document.getElementById(`fca-${i}`);
+    if(!img)continue;
+    fetchFriendCover(a.artist,a.title).then(url=>{
+      if(url&&img)img.src=url;
+    });
+    if(i%5===4)await new Promise(r=>setTimeout(r,50)); // small batch pause
+  }
 }
+
+function renderFriendBanner(albums){
+  const wrap=document.getElementById("friendBannerWrap");
+  if(!wrap)return;
+  const saved=activeFriendCrateId!==null;
+  const crates=loadFriendCrates();
+  const thisCrate=saved?crates.find(c=>c.id===activeFriendCrateId):null;
+  const name=thisCrate?thisCrate.name:"Friend's Crate";
+
+  wrap.innerHTML=`
+    <div class="friend-banner" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="display:flex;align-items:center;gap:8px">🎵 <strong style="color:var(--cream)">${escAttr(name)}</strong> — ${albums.length} record${albums.length!==1?'s':''}</span>
+      <span style="display:flex;gap:8px;flex-shrink:0">
+        ${saved
+          ? `<button class="friend-save-crate-btn" onclick="updateSavedFriendCrate()" style="background:rgba(127,184,160,.12);color:#7fb8a0;border:1px solid #3a6a55;border-radius:3px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer">💾 Save Changes</button>`
+          : `<button class="friend-save-crate-btn" onclick="promptSaveFriendCrate()" style="background:rgba(127,184,160,.12);color:#7fb8a0;border:1px solid #3a6a55;border-radius:3px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer">💾 Save to Friends</button>`
+        }
+      </span>
+    </div>`;
+}
+
+function promptSaveFriendCrate(){
+  const name=prompt("Name this friend's crate (e.g. their name):");
+  if(!name||!name.trim())return;
+  const crates=loadFriendCrates();
+  const id=Date.now();
+  crates.push({id,name:name.trim(),albums:activeFriendAlbums});
+  saveFriendCrates(crates);
+  activeFriendCrateId=id;
+  renderFriendBanner(activeFriendAlbums);
+  renderSavedCratesList();
+  showToast(`Saved as "${name.trim()}"!`);
+}
+
+function updateSavedFriendCrate(){
+  if(activeFriendCrateId===null)return;
+  const crates=loadFriendCrates();
+  const idx=crates.findIndex(c=>c.id===activeFriendCrateId);
+  if(idx===-1)return;
+  crates[idx].albums=activeFriendAlbums;
+  saveFriendCrates(crates);
+  renderFriendBanner(activeFriendAlbums);
+  renderSavedCratesList();
+  showToast("Crate updated!");
+}
+
+function addAlbumToFriendCrate(){
+  const artist=document.getElementById("friendAddArtist").value.trim();
+  const title=document.getElementById("friendAddTitle").value.trim();
+  const year=document.getElementById("friendAddYear").value.trim();
+  const genre=document.getElementById("friendAddGenre").value;
+  if(!artist||!title){showToast("Artist and title are required.");return;}
+  activeFriendAlbums.push({artist,title,year:year||"",genre,fav:false});
+  document.getElementById("friendAddArtist").value="";
+  document.getElementById("friendAddTitle").value="";
+  document.getElementById("friendAddYear").value="";
+  renderFriendResults(activeFriendAlbums);
+  showToast(`Added ${artist} — ${title}`);
+}
+
+function renderSavedCratesList(){
+  const crates=loadFriendCrates();
+  const list=document.getElementById("savedCratesList");
+  const empty=document.getElementById("noSavedCrates");
+  if(!crates.length){
+    list.innerHTML="";
+    empty.style.display="block";
+    return;
+  }
+  empty.style.display="none";
+  list.innerHTML=crates.map(c=>`
+    <div class="saved-crate-row ${c.id===activeFriendCrateId?'selected':''}" data-cid="${c.id}" id="scr-${c.id}">
+      <div class="scr-name" id="scrname-${c.id}">${escAttr(c.name)}</div>
+      <div class="scr-count">${c.albums.length} records</div>
+      <button class="scr-rename-btn" onclick="renameSavedCrate(${c.id},event)">✎ Rename</button>
+      <button class="scr-delete-btn" onclick="deleteSavedCrate(${c.id},event)">🗑</button>
+    </div>`).join("");
+
+  list.querySelectorAll(".saved-crate-row").forEach(row=>{
+    row.addEventListener("click",e=>{
+      if(e.target.closest("button"))return;
+      const cid=+row.dataset.cid;
+      openSavedFriendCrate(cid);
+    });
+  });
+}
+
+function openSavedFriendCrate(id){
+  const crates=loadFriendCrates();
+  const c=crates.find(x=>x.id===id);
+  if(!c)return;
+  activeFriendAlbums=c.albums;
+  activeFriendCrateId=id;
+  switchFriendTab("browse");
+  document.getElementById("browseFriendTabBtn").style.display="";
+  renderFriendResults(c.albums);
+  renderSavedCratesList();
+}
+
+function renameSavedCrate(id,e){
+  e.stopPropagation();
+  const row=document.getElementById(`scr-${id}`);
+  const nameEl=document.getElementById(`scrname-${id}`);
+  const old=nameEl.textContent;
+  const input=document.createElement("input");
+  input.className="scr-rename-input";
+  input.value=old;
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+  const commit=()=>{
+    const val=input.value.trim()||old;
+    const crates=loadFriendCrates();
+    const c=crates.find(x=>x.id===id);
+    if(c){c.name=val;saveFriendCrates(crates);}
+    renderSavedCratesList();
+    if(activeFriendCrateId===id)renderFriendBanner(activeFriendAlbums);
+    showToast(`Renamed to "${val}"`);
+  };
+  input.addEventListener("blur",commit);
+  input.addEventListener("keydown",ev=>{if(ev.key==="Enter")input.blur();if(ev.key==="Escape"){input.value=old;input.blur();}});
+}
+
+function deleteSavedCrate(id,e){
+  e.stopPropagation();
+  const crates=loadFriendCrates();
+  const c=crates.find(x=>x.id===id);
+  if(!c||!confirm(`Delete "${c.name}"?`))return;
+  const updated=crates.filter(x=>x.id!==id);
+  saveFriendCrates(updated);
+  if(activeFriendCrateId===id){activeFriendCrateId=null;activeFriendAlbums=[];}
+  renderSavedCratesList();
+  showToast("Crate deleted.");
+}
+
+function switchFriendTab(tab){
+  document.querySelectorAll(".friend-tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.ftab===tab));
+  document.querySelectorAll(".friend-tab-panel").forEach(p=>p.classList.toggle("active",p.id===`ftab-${tab}`));
+}
+
+document.querySelectorAll(".friend-tab-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>switchFriendTab(btn.dataset.ftab));
+});
 
 function extractShareCodeFromInput(raw){
   const trimmed=raw.trim();
   if(!trimmed)return null;
   const hashMatch=trimmed.match(/#share=([^&\s]+)/);
   if(hashMatch)return hashMatch[1];
-  // Allow pasting the bare code too
   if(/^[A-Za-z0-9_-]+$/.test(trimmed))return trimmed;
   return null;
 }
 
+async function loadFriendAlbumsAndBrowse(albums){
+  activeFriendAlbums=albums;
+  activeFriendCrateId=null;
+  document.getElementById("browseFriendTabBtn").style.display="";
+  switchFriendTab("browse");
+  await renderFriendResults(albums);
+}
+
 async function openFriendModalWithCode(code){
   document.getElementById("friendModal").classList.add("open");
-  const errEl=document.getElementById("friendParseError");
-  errEl.innerHTML="";
+  document.getElementById("friendParseError").innerHTML="";
   try{
     const albums=await decodeCrateLink(code);
-    renderFriendResults(albums);
+    await loadFriendAlbumsAndBrowse(albums);
   }catch{
-    errEl.innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted. Ask your friend to resend it.</div>`;
-    document.getElementById("friendResults").innerHTML="";
+    document.getElementById("friendParseError").innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted.</div>`;
   }
 }
 
 document.getElementById("viewFriendBtn").addEventListener("click",()=>{
+  renderSavedCratesList();
   document.getElementById("friendModal").classList.add("open");
 });
 document.getElementById("friendClose").addEventListener("click",()=>document.getElementById("friendModal").classList.remove("open"));
 document.getElementById("friendModal").addEventListener("click",e=>{if(e.target===document.getElementById("friendModal"))document.getElementById("friendModal").classList.remove("open")});
-document.getElementById("friendViewBtn").addEventListener("click",()=>{
+
+document.getElementById("friendViewBtn").addEventListener("click",async()=>{
   const raw=document.getElementById("friendTextarea").value;
-  const errEl=document.getElementById("friendParseError");
   if(!raw.trim()){
-    errEl.innerHTML=`<div class="friend-parse-error">Paste your friend's crate text first.</div>`;
-    document.getElementById("friendResults").innerHTML="";
+    document.getElementById("friendParseError").innerHTML=`<div class="friend-parse-error">Paste your friend's crate text first.</div>`;
     return;
   }
   const albums=parseFriendCrateText(raw);
-  errEl.innerHTML="";
-  renderFriendResults(albums);
+  document.getElementById("friendParseError").innerHTML="";
+  await loadFriendAlbumsAndBrowse(albums);
 });
+
 document.getElementById("friendLinkBtn").addEventListener("click",async()=>{
   const raw=document.getElementById("friendLinkInput").value;
-  const errEl=document.getElementById("friendParseError");
   const code=extractShareCodeFromInput(raw);
   if(!code){
-    errEl.innerHTML=`<div class="friend-parse-error">Paste a valid shared crate link first.</div>`;
-    document.getElementById("friendResults").innerHTML="";
+    document.getElementById("friendParseError").innerHTML=`<div class="friend-parse-error">Paste a valid shared crate link first.</div>`;
     return;
   }
   try{
     const albums=await decodeCrateLink(code);
-    errEl.innerHTML="";
-    renderFriendResults(albums);
+    document.getElementById("friendParseError").innerHTML="";
+    await loadFriendAlbumsAndBrowse(albums);
   }catch{
-    errEl.innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted. Ask your friend to resend it.</div>`;
-    document.getElementById("friendResults").innerHTML="";
+    document.getElementById("friendParseError").innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted.</div>`;
   }
 });
+
 document.getElementById("friendClearBtn").addEventListener("click",()=>{
   document.getElementById("friendTextarea").value="";
   document.getElementById("friendLinkInput").value="";
-  document.getElementById("friendResults").innerHTML="";
   document.getElementById("friendParseError").innerHTML="";
 });
 
