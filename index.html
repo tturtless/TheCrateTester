@@ -299,11 +299,17 @@
   .friend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .friend-card{background:var(--surface2);border:1px solid var(--border);border-radius:3px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}
   .friend-card:hover{transform:translateY(-4px);border-color:var(--gold-dim);box-shadow:0 12px 32px rgba(0,0,0,.6)}
-  .friend-card .fc-art{width:100%;aspect-ratio:1;object-fit:cover;background:var(--groove);display:block;flex-shrink:0}
+  .friend-card .fc-art-wrap{position:relative;width:100%;aspect-ratio:1;flex-shrink:0}
+  .friend-card .fc-art{width:100%;height:100%;aspect-ratio:1;object-fit:cover;background:var(--groove);display:block}
   .friend-card .fc-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px}
   .friend-card .fc-artist{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .friend-card .fc-title{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--cream);line-height:1.25}
   .friend-card .fc-meta{font-family:'Courier Prime',monospace;font-size:10px;color:var(--cream-dim);margin-top:2px}
+  .fc-overlay-btns{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:4px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none}
+  .friend-card:hover .fc-overlay-btns,.friend-card.revealed .fc-overlay-btns{opacity:1;pointer-events:auto}
+  .fc-icon-btn{width:30px;height:30px;border-radius:50%;background:rgba(13,13,13,.78);border:1px solid var(--gold-dim);color:var(--cream);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;backdrop-filter:blur(3px)}
+  .fc-icon-btn:hover{background:var(--gold);color:var(--bg)}
+  .fc-icon-btn.fav-active{color:#e0566f;border-color:#e0566f}
   .friend-empty{text-align:center;padding:40px 20px;color:var(--cream-dim);font-size:13px}
   .friend-parse-error{background:rgba(192,57,43,.10);border:1px solid var(--red-bright);border-radius:4px;padding:10px 14px;font-size:12px;color:#e08080;margin-top:10px}
 
@@ -572,6 +578,11 @@
       </button>
       <button id="wantDetailMoveBtn" onclick="moveWantToCrateFromModal()" style="background:var(--want);border:1px solid var(--want);border-radius:3px;color:#fff;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;padding:7px 14px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:6px">
         <span style="font-size:13px">→</span> Move to Crate
+      </button>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid var(--border);display:none;justify-content:flex-end;gap:8px" id="detailFooterFriend">
+      <button id="friendDetailRemoveBtn" onclick="removeFriendAlbumFromModal()" style="background:none;border:1px solid var(--red-bright);border-radius:3px;color:var(--red-bright);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:.06em;padding:7px 14px;cursor:pointer;transition:background .15s,color .15s;display:flex;align-items:center;gap:6px">
+        <span style="font-size:13px">🗑</span> Remove from Their Crate
       </button>
     </div>
   </div>
@@ -1779,6 +1790,7 @@ function setDetailModalMode(mode){
   const ownerOnly=isWant||isFriend; // hides personal-collection-only fields
   document.getElementById("detailFooterCrate").style.display=isWant||isFriend?"none":"flex";
   document.getElementById("detailFooterWant").style.display=isWant?"flex":"none";
+  document.getElementById("detailFooterFriend").style.display=isFriend?"flex":"none";
   document.querySelector('.tab-btn[data-tab="grade"]').style.display=ownerOnly?"none":"";
   document.querySelector('.tab-btn[data-tab="tracklist"]').style.display=ownerOnly?"none":"";
   document.querySelector('.tab-btn[data-tab="notes"]').style.display=ownerOnly?"none":"";
@@ -1859,6 +1871,46 @@ function toggleWantFavoriteFromModal(){
   toggleWantFavorite(currentWantId);
   updateWantDetailHeartBtn(currentWantId);
 }
+function removeFriendAlbumFromModal(){
+  if(currentFriendIdx==null)return;
+  const item=activeFriendAlbums[currentFriendIdx];
+  if(item&&!confirm(`Remove "${item.title}" from this crate?`))return;
+  activeFriendAlbums.splice(currentFriendIdx,1);
+  // Persist removal if this is a saved crate
+  if(activeFriendCrateId!=null){
+    const crates=loadFriendCrates();
+    const idx=crates.findIndex(c=>c.id===activeFriendCrateId);
+    if(idx>-1){crates[idx].albums=activeFriendAlbums;saveFriendCrates(crates);}
+  }
+  document.getElementById("detailModal").classList.remove("open");
+  currentFriendIdx=null;
+  showToast(item?`Removed "${item.title}"`:"Removed from crate");
+  reopenFriendModalToBrowse();
+}
+
+function removeFriendAlbumByIdx(idx){
+  const item=activeFriendAlbums[idx];if(!item)return;
+  if(!confirm(`Remove "${item.title}" from this crate?`))return;
+  activeFriendAlbums.splice(idx,1);
+  if(activeFriendCrateId!=null){
+    const crates=loadFriendCrates();
+    const ci=crates.findIndex(c=>c.id===activeFriendCrateId);
+    if(ci>-1){crates[ci].albums=activeFriendAlbums;saveFriendCrates(crates);}
+  }
+  renderFriendResults(activeFriendAlbums);
+  showToast(`Removed "${item.title}"`);
+}
+
+// Reopens the friend modal on the Browse tab without resetting scroll —
+// used after closing the detail view for a friend's album so the user lands
+// back where they were instead of being sent all the way back to the top.
+function reopenFriendModalToBrowse(){
+  document.getElementById("friendModal").classList.add("open");
+  document.querySelectorAll(".friend-tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.ftab==="browse"));
+  document.querySelectorAll(".friend-tab-panel").forEach(p=>p.classList.toggle("active",p.id==="ftab-browse"));
+  renderFriendResults(activeFriendAlbums);
+}
+
 function removeWantFromModal(){
   if(currentWantId==null)return;
   const item=wantList.find(x=>x.id===currentWantId);
@@ -2472,8 +2524,24 @@ function buildAboutTab(id,wantItem,friendIdx){
 }
 
 // Close detail modal
-document.getElementById("detailClose").addEventListener("click",()=>{document.getElementById("detailModal").classList.remove("open");closePhotoMenu();currentDetailId=null;currentWantId=null;currentFriendIdx=null});
-document.getElementById("detailModal").addEventListener("click",e=>{if(e.target===document.getElementById("detailModal")){document.getElementById("detailModal").classList.remove("open");closePhotoMenu();currentDetailId=null;currentWantId=null;currentFriendIdx=null}});
+document.getElementById("detailClose").addEventListener("click",()=>{
+  document.getElementById("detailModal").classList.remove("open");
+  closePhotoMenu();
+  currentDetailId=null;currentWantId=null;
+  const wasFriend=currentFriendIdx!=null;
+  currentFriendIdx=null;
+  if(wasFriend)reopenFriendModalToBrowse();
+});
+document.getElementById("detailModal").addEventListener("click",e=>{
+  if(e.target===document.getElementById("detailModal")){
+    document.getElementById("detailModal").classList.remove("open");
+    closePhotoMenu();
+    currentDetailId=null;currentWantId=null;
+    const wasFriend=currentFriendIdx!=null;
+    currentFriendIdx=null;
+    if(wasFriend)reopenFriendModalToBrowse();
+  }
+});
 
 // Delete from inside the detail modal
 function deleteAlbumFromModal(){
@@ -3009,7 +3077,11 @@ document.getElementById("searchInput").addEventListener("input",e=>{state.search
 document.getElementById("decadeFilter").addEventListener("change",e=>{state.decade=e.target.value;render()});
 document.getElementById("favFilterBtn").addEventListener("click",function(){state.favOnly=!state.favOnly;this.classList.toggle("active",state.favOnly);render()});
 document.querySelectorAll(".sort-btn").forEach(btn=>{btn.addEventListener("click",()=>{document.querySelectorAll(".sort-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");state.sort=btn.dataset.sort;render()})});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){document.getElementById("detailModal").classList.remove("open");document.getElementById("spinModal").classList.remove("open");document.getElementById("addModal").classList.remove("open");document.getElementById("wantlistModal").classList.remove("open");document.getElementById("shareModal").classList.remove("open");document.getElementById("friendModal").classList.remove("open");currentDetailId=null;currentWantId=null;currentFriendIdx=null;closeCardMenu();closePhotoMenu();clearTimeout(spinTimeout)}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){
+  const wasFriendDetail=document.getElementById("detailModal").classList.contains("open")&&currentFriendIdx!=null;
+  document.getElementById("detailModal").classList.remove("open");document.getElementById("spinModal").classList.remove("open");document.getElementById("addModal").classList.remove("open");document.getElementById("wantlistModal").classList.remove("open");document.getElementById("shareModal").classList.remove("open");document.getElementById("friendModal").classList.remove("open");currentDetailId=null;currentWantId=null;currentFriendIdx=null;closeCardMenu();closePhotoMenu();clearTimeout(spinTimeout);
+  if(wasFriendDetail)reopenFriendModalToBrowse();
+}});
 
 // ── SHARE MY CRATE ──
 function buildShareText(){
@@ -3238,7 +3310,14 @@ async function renderFriendResults(albums){
     <div class="friend-grid" id="friendGrid">
       ${albums.map((a,i)=>`
         <div class="friend-card" data-idx="${i}" tabindex="0" role="button" aria-label="${escAttr(a.artist)} — ${escAttr(a.title)}">
-          <img class="fc-art" id="fca-${i}" src="${escAttr(getPlaceholderUrl(a.genre))}" alt="" referrerpolicy="no-referrer">
+          <div class="fc-art-wrap">
+            <img class="fc-art" id="fca-${i}" src="${escAttr(getPlaceholderUrl(a.genre))}" alt="" referrerpolicy="no-referrer">
+            <div class="fc-overlay-btns">
+              <button class="fc-icon-btn ${a.fav?'fav-active':''}" data-action="fav" data-idx="${i}" title="${a.fav?'Unfavorite':'Favorite'}">${a.fav?'♥':'♡'}</button>
+              <button class="fc-icon-btn" data-action="view" data-idx="${i}" title="View">👁</button>
+              <button class="fc-icon-btn" data-action="remove" data-idx="${i}" title="Remove from this crate">🗑</button>
+            </div>
+          </div>
           <div class="fc-body">
             <div class="fc-artist">${escAttr(a.artist)}</div>
             <div class="fc-title">${escAttr(a.title)}</div>
@@ -3252,8 +3331,51 @@ async function renderFriendResults(albums){
 
   document.getElementById("friendGrid").querySelectorAll(".friend-card").forEach(card=>{
     const idx=+card.dataset.idx;
-    card.addEventListener("click",()=>{document.getElementById("friendModal").classList.remove("open");openFriendDetail(idx)});
+    card.addEventListener("click",e=>{
+      if(e.target.closest(".fc-overlay-btns"))return;
+      // On touch devices, the first tap reveals the heart/view/remove overlay
+      // instead of jumping straight into the album. Tapping the card again
+      // (or tapping the 👁 view button) opens it.
+      const isTouch=matchMedia("(hover:none),(pointer:coarse)").matches;
+      if(isTouch&&!card.classList.contains("revealed")){
+        document.querySelectorAll(".friend-card.revealed").forEach(c=>{if(c!==card)c.classList.remove("revealed")});
+        card.classList.add("revealed");
+        return;
+      }
+      document.getElementById("friendModal").classList.remove("open");openFriendDetail(idx);
+    });
     card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();document.getElementById("friendModal").classList.remove("open");openFriendDetail(idx)}});
+  });
+  document.getElementById("friendGrid").querySelectorAll("[data-action='fav']").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const i=+btn.dataset.idx,item=activeFriendAlbums[i];if(!item)return;
+      item.fav=!item.fav;
+      if(activeFriendCrateId!=null){
+        const crates=loadFriendCrates();const ci=crates.findIndex(c=>c.id===activeFriendCrateId);
+        if(ci>-1){crates[ci].albums=activeFriendAlbums;saveFriendCrates(crates);}
+      }
+      renderFriendResults(activeFriendAlbums);
+    });
+  });
+  document.getElementById("friendGrid").querySelectorAll("[data-action='view']").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      document.getElementById("friendModal").classList.remove("open");
+      openFriendDetail(+btn.dataset.idx);
+    });
+  });
+  document.getElementById("friendGrid").querySelectorAll("[data-action='remove']").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      removeFriendAlbumByIdx(+btn.dataset.idx);
+    });
+  });
+  // Tapping anywhere outside a revealed friend card un-reveals it
+  document.addEventListener("click",e=>{
+    if(!e.target.closest(".friend-card")){
+      document.querySelectorAll(".friend-card.revealed").forEach(c=>c.classList.remove("revealed"));
+    }
   });
 
   // Load covers progressively
