@@ -305,7 +305,7 @@
   .friend-card .fc-artist{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .friend-card .fc-title{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--cream);line-height:1.25}
   .friend-card .fc-meta{font-family:'Courier Prime',monospace;font-size:10px;color:var(--cream-dim);margin-top:2px}
-  .fc-overlay-btns{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:4px;z-index:5;opacity:0;transition:opacity .2s;pointer-events:none}
+  .fc-overlay-btns{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:4px;z-index:5;opacity:0;pointer-events:none}
   .friend-card:hover .fc-overlay-btns,.friend-card.revealed .fc-overlay-btns{opacity:1;pointer-events:auto}
   .fc-icon-btn{width:30px;height:30px;border-radius:50%;background:rgba(13,13,13,.78);border:1px solid var(--gold-dim);color:var(--cream);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;backdrop-filter:blur(3px)}
   .fc-icon-btn:hover{background:var(--gold);color:var(--bg)}
@@ -3333,11 +3333,10 @@ async function renderFriendResults(albums){
     const idx=+card.dataset.idx;
     card.addEventListener("click",e=>{
       if(e.target.closest(".fc-overlay-btns"))return;
-      // On touch devices, the first tap reveals the heart/view/remove overlay
-      // instead of jumping straight into the album. Tapping the card again
-      // (or tapping the 👁 view button) opens it.
-      const isTouch=matchMedia("(hover:none),(pointer:coarse)").matches;
-      if(isTouch&&!card.classList.contains("revealed")){
+      // First click/tap reveals the heart/view/remove overlay instead of
+      // jumping straight into the album. A second click (or tapping the
+      // 👁 view button directly) opens it.
+      if(!card.classList.contains("revealed")){
         document.querySelectorAll(".friend-card.revealed").forEach(c=>{if(c!==card)c.classList.remove("revealed")});
         card.classList.add("revealed");
         return;
@@ -3368,12 +3367,7 @@ async function renderFriendResults(albums){
       removeFriendAlbumByIdx(+btn.dataset.idx);
     });
   });
-  // Tapping anywhere outside a revealed friend card un-reveals it
-  document.addEventListener("click",e=>{
-    if(!e.target.closest(".friend-card")){
-      document.querySelectorAll(".friend-card.revealed").forEach(c=>c.classList.remove("revealed"));
-    }
-  });
+  // Tapping anywhere outside a revealed friend card un-reveals it (listener attached once, below this function)
 
   // Load covers progressively
   for(let i=0;i<albums.length;i++){
@@ -3386,6 +3380,13 @@ async function renderFriendResults(albums){
     if(i%5===4)await new Promise(r=>setTimeout(r,50)); // small batch pause
   }
 }
+
+// Attached once at load: tapping anywhere outside a revealed friend card un-reveals it.
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".friend-card")){
+    document.querySelectorAll(".friend-card.revealed").forEach(c=>c.classList.remove("revealed"));
+  }
+});
 
 function renderFriendBanner(albums){
   const wrap=document.getElementById("friendBannerWrap");
