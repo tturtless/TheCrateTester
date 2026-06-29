@@ -2919,29 +2919,96 @@ function buildShareText(){
   return lines.join("\n");
 }
 
-// Compact encode: array of [artist,title,year,genre,fav] tuples → UTF-8 safe base64url.
-function encodeCrateLink(albums){
-  const tuples=albums.map(a=>[a.artist,a.title,a.year,a.genre,favorites.has(a.id)?1:0]);
-  const json=JSON.stringify(tuples);
-  const utf8Bytes=new TextEncoder().encode(json);
+// Compact encode: tab-delimited rows + genre dictionary, deflate-compressed, base64url.
+// Format (pre-compression): "v2\nGenre1\tGenre2\t...\nartist\ttitle\tyear\tgenreIndex\tfav\n..."
+// Falls back to legacy JSON-tuple format ("v1") if CompressionStream isn't available.
+function bytesToBase64Url(bytes){
   let binary="";
-  utf8Bytes.forEach(b=>binary+=String.fromCharCode(b));
-  const b64=btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-  return b64;
+  bytes.forEach(b=>binary+=String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
-function decodeCrateLink(code){
+function base64UrlToBytes(code){
   const b64=code.replace(/-/g,"+").replace(/_/g,"/");
   const pad=b64.length%4===0?"":"=".repeat(4-(b64.length%4));
   const binary=atob(b64+pad);
   const bytes=new Uint8Array(binary.length);
   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return bytes;
+}
+const TSV_ESC_TAB="\u2409", TSV_ESC_NL="\u240A"; // rare control-picture chars, safe stand-ins for real tabs/newlines in field values
+function tsvSafe(s){return String(s).replace(/\t/g,TSV_ESC_TAB).replace(/\n/g,TSV_ESC_NL)}
+function tsvUnsafe(s){return String(s).replace(new RegExp(TSV_ESC_TAB,"g"),"\t").replace(new RegExp(TSV_ESC_NL,"g"),"\n")}
+
+async function encodeCrateLink(albums){
+  const genreList=[...new Set(albums.map(a=>a.genre||"Unsorted"))];
+  const rows=albums.map(a=>{
+    const gi=genreList.indexOf(a.genre||"Unsorted");
+    return [tsvSafe(a.artist),tsvSafe(a.title),a.year,gi,favorites.has(a.id)?1:0].join("\t");
+  });
+  const payload="v2\n"+genreList.map(tsvSafe).join("\t")+"\n"+rows.join("\n");
+  const utf8Bytes=new TextEncoder().encode(payload);
+
+  if(typeof CompressionStream==="function"){
+    const cs=new CompressionStream("deflate-raw");
+    const writer=cs.writable.getWriter();
+    writer.write(utf8Bytes);
+    writer.close();
+    const compressed=new Uint8Array(await new Response(cs.readable).arrayBuffer());
+    return "c"+bytesToBase64Url(compressed); // "c" prefix = compressed
+  }
+  // Fallback: no compression support, just base64 the raw payload
+  return "u"+bytesToBase64Url(utf8Bytes); // "u" prefix = uncompressed
+}
+
+async function decodeCrateLink(code){
+  if(!code||code.length<2)throw new Error("empty code");
+  const tag=code[0], body=code.slice(1);
+  let bytes=base64UrlToBytes(body);
+
+  if(tag==="c"){
+    if(typeof DecompressionStream!=="function")throw new Error("decompression unsupported");
+    const ds=new DecompressionStream("deflate-raw");
+    const writer=ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    bytes=new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }else if(tag!=="u"){
+    // Legacy v1 links (no tag prefix) were raw base64url of a JSON array — try that path.
+    return decodeLegacyCrateLink(code);
+  }
+
+  const payload=new TextDecoder().decode(bytes);
+  const nl1=payload.indexOf("\n");
+  const version=payload.slice(0,nl1);
+  if(version!=="v2")throw new Error("unsupported version");
+  const nl2=payload.indexOf("\n",nl1+1);
+  const genreList=payload.slice(nl1+1,nl2).split("\t").map(tsvUnsafe);
+  const body2=payload.slice(nl2+1);
+  const lines=body2.length?body2.split("\n"):[];
+  return lines.map(line=>{
+    const parts=line.split("\t");
+    const gi=parseInt(parts[3],10);
+    return {
+      artist:tsvUnsafe(parts[0]||""),
+      title:tsvUnsafe(parts[1]||""),
+      year:parts[2]||"",
+      genre:genreList[gi]||"Unsorted",
+      fav:parts[4]==="1"
+    };
+  });
+}
+
+// Legacy v1 format support: plain base64url of a JSON tuple array, no prefix tag.
+function decodeLegacyCrateLink(code){
+  const bytes=base64UrlToBytes(code);
   const json=new TextDecoder().decode(bytes);
   const tuples=JSON.parse(json);
   if(!Array.isArray(tuples))throw new Error("bad format");
   return tuples.map(t=>({artist:String(t[0]||""),title:String(t[1]||""),year:String(t[2]||""),genre:String(t[3]||"Unsorted"),fav:!!t[4]}));
 }
-function buildShareLink(){
-  const code=encodeCrateLink(vinylCollection);
+
+async function buildShareLink(){
+  const code=await encodeCrateLink(vinylCollection);
   const url=new URL(window.location.href);
   url.hash="share="+code;
   return url.toString();
@@ -2970,7 +3037,7 @@ document.getElementById("shareCopyBtn").addEventListener("click",async()=>{
 document.getElementById("shareLinkBtn").addEventListener("click",async()=>{
   let link;
   try{
-    link=buildShareLink();
+    link=await buildShareLink();
   }catch{
     showToast("Couldn't build a link — try the text option instead.");
     return;
@@ -3039,12 +3106,12 @@ function extractShareCodeFromInput(raw){
   return null;
 }
 
-function openFriendModalWithCode(code){
+async function openFriendModalWithCode(code){
   document.getElementById("friendModal").classList.add("open");
   const errEl=document.getElementById("friendParseError");
   errEl.innerHTML="";
   try{
-    const albums=decodeCrateLink(code);
+    const albums=await decodeCrateLink(code);
     renderFriendResults(albums);
   }catch{
     errEl.innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted. Ask your friend to resend it.</div>`;
@@ -3069,7 +3136,7 @@ document.getElementById("friendViewBtn").addEventListener("click",()=>{
   errEl.innerHTML="";
   renderFriendResults(albums);
 });
-document.getElementById("friendLinkBtn").addEventListener("click",()=>{
+document.getElementById("friendLinkBtn").addEventListener("click",async()=>{
   const raw=document.getElementById("friendLinkInput").value;
   const errEl=document.getElementById("friendParseError");
   const code=extractShareCodeFromInput(raw);
@@ -3079,7 +3146,7 @@ document.getElementById("friendLinkBtn").addEventListener("click",()=>{
     return;
   }
   try{
-    const albums=decodeCrateLink(code);
+    const albums=await decodeCrateLink(code);
     errEl.innerHTML="";
     renderFriendResults(albums);
   }catch{
