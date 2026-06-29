@@ -35,6 +35,8 @@
   .add-album-btn:hover{background:#DFB95C;border-color:#DFB95C}
   .share-crate-btn{background:rgba(201,168,76,.10);color:var(--gold);border:1px solid var(--gold-dim);border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
   .share-crate-btn:hover{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+  .import-crate-btn{background:rgba(74,143,212,.10);color:#4a8fd4;border:1px solid #2a5a8a;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
+  .import-crate-btn:hover{background:#4a8fd4;color:#fff;border-color:#4a8fd4}
   .view-friend-btn{background:var(--surface2);color:#7fb8a0;border:1px solid #3a6a55;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
   .view-friend-btn:hover{background:#7fb8a0;color:#0D0D0D;border-color:#7fb8a0}
   .spin-btn{background:var(--surface2);color:#c97f4f;border:1px solid #c97f4f;border-radius:4px;font-family:'Playfair Display',serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,transform .1s;display:flex;align-items:center;gap:6px}
@@ -444,6 +446,7 @@
     <button class="stats-btn" id="statsBtn"><span>📊</span><span>Stash Facts</span></button>
     <button class="want-list-btn" id="wantListBtn"><span>🎯</span><span>Wish List</span></button>
     <button class="share-crate-btn" id="shareCrateBtn"><span>📤</span><span>Share My Crate</span></button>
+    <button class="import-crate-btn" id="importCrateBtn"><span>📥</span><span>Import a Crate</span></button>
     <button class="view-friend-btn" id="viewFriendBtn"><span>👀</span><span>View a Friend's Crate</span></button>
     <button class="add-album-btn" id="addAlbumBtn"><span style="font-size:16px;line-height:1">＋</span><span>Add to Crate</span></button>
     <button class="spin-btn" id="spinBtn"><span>🎲</span><span>Spin</span></button>
@@ -699,6 +702,25 @@
       </div>
       <div class="share-meta" id="shareMeta"></div>
       <div class="share-meta" id="shareLinkMeta" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT A CRATE MODAL -->
+<div class="modal-overlay" id="importModal" role="dialog" aria-modal="true">
+  <div class="share-modal">
+    <button class="modal-close" id="importClose">×</button>
+    <div class="share-header">
+      <h2>📥 Import a Crate</h2>
+      <p>Paste a shared crate link to merge those albums into <strong>your</strong> crate. Duplicates (same artist + title) are skipped automatically.</p>
+    </div>
+    <div class="share-body">
+      <input type="text" id="importLinkInput" class="share-textarea" placeholder="Paste a shared crate link here…" style="min-height:auto;height:auto;padding:10px 12px;margin-bottom:10px">
+      <div class="share-actions" style="margin-top:0;margin-bottom:10px">
+        <button class="share-copy-btn" id="importLinkBtn">📥 Import Albums</button>
+      </div>
+      <div id="importError" style="margin-top:4px"></div>
+      <div id="importPreview" style="margin-top:12px"></div>
     </div>
   </div>
 </div>
@@ -3189,6 +3211,71 @@ async function buildShareLink(){
   return url.toString();
 }
 
+// ── IMPORT A CRATE ──
+document.getElementById("importCrateBtn").addEventListener("click",()=>{
+  document.getElementById("importLinkInput").value="";
+  document.getElementById("importError").innerHTML="";
+  document.getElementById("importPreview").innerHTML="";
+  document.getElementById("importModal").classList.add("open");
+});
+document.getElementById("importClose").addEventListener("click",()=>document.getElementById("importModal").classList.remove("open"));
+document.getElementById("importModal").addEventListener("click",e=>{if(e.target===document.getElementById("importModal"))document.getElementById("importModal").classList.remove("open")});
+
+document.getElementById("importLinkBtn").addEventListener("click",async()=>{
+  const raw=document.getElementById("importLinkInput").value;
+  const code=extractShareCodeFromInput(raw);
+  const errEl=document.getElementById("importError");
+  const previewEl=document.getElementById("importPreview");
+  if(!code){
+    errEl.innerHTML=`<div class="friend-parse-error">Paste a valid shared crate link first.</div>`;
+    return;
+  }
+  errEl.innerHTML="";
+  previewEl.innerHTML=`<div style="font-size:12px;color:var(--cream-dim)">Reading link…</div>`;
+  try{
+    const imported=await decodeCrateLink(code);
+    // Build a key set of existing albums
+    const existingKeys=new Set(vinylCollection.map(a=>(a.artist+"|"+a.title).toLowerCase()));
+    const toAdd=imported.filter(a=>!existingKeys.has((a.artist+"|"+a.title).toLowerCase()));
+    const skipped=imported.length-toAdd.length;
+    if(!toAdd.length){
+      previewEl.innerHTML=`<div style="font-size:12px;color:var(--cream-dim);padding:10px 0">All ${imported.length} album${imported.length!==1?'s are':' is'} already in your crate — nothing to import.</div>`;
+      return;
+    }
+    // Show preview and confirm button
+    previewEl.innerHTML=`
+      <div style="font-size:11px;color:var(--cream-dim);margin-bottom:10px">
+        Found <strong style="color:var(--gold)">${toAdd.length}</strong> new album${toAdd.length!==1?'s':''} to import${skipped?` · <span style="color:var(--cream-dim)">${skipped} already in your crate (skipped)</span>`:''}
+      </div>
+      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:3px;margin-bottom:12px">
+        ${toAdd.map(a=>`<div style="padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;display:flex;gap:8px;align-items:baseline">
+          <span style="color:var(--gold);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;flex-shrink:0">${escAttr(a.artist)}</span>
+          <span style="color:var(--cream);font-family:'Playfair Display',serif">${escAttr(a.title)}</span>
+          <span style="color:var(--cream-dim);font-family:'Courier Prime',monospace;font-size:11px;margin-left:auto;flex-shrink:0">${escAttr(a.year)}</span>
+        </div>`).join("")}
+      </div>
+      <button id="importConfirmBtn" style="background:var(--gold);border:none;border-radius:3px;color:var(--bg);font-family:'Playfair Display',serif;font-size:14px;font-weight:700;padding:10px 20px;cursor:pointer;width:100%;transition:background .2s">
+        📥 Add ${toAdd.length} Album${toAdd.length!==1?'s':''} to My Crate
+      </button>`;
+
+    document.getElementById("importConfirmBtn").addEventListener("click",()=>{
+      toAdd.forEach(a=>{
+        const year=parseInt(a.year)||new Date().getFullYear();
+        const album={id:nextId++,artist:a.artist,title:a.title,year,genre:a.genre||"Classic Rock",condition:"VG+",decade:Math.floor(year/10)*10};
+        if(a.fav){favorites.add(album.id);lsSet("crate_favorites",[...favorites]);}
+        vinylCollection.push(album);
+        const ua=lsGet("crate_user_albums",[]);ua.push(album);lsSet("crate_user_albums",ua);
+      });
+      buildFilters();render();
+      document.getElementById("importModal").classList.remove("open");
+      showToast(`✓ ${toAdd.length} album${toAdd.length!==1?'s':''} imported into your crate!`);
+    });
+  }catch{
+    previewEl.innerHTML="";
+    errEl.innerHTML=`<div class="friend-parse-error">That link couldn't be read — it may be incomplete or corrupted.</div>`;
+  }
+});
+
 document.getElementById("shareCrateBtn").addEventListener("click",()=>{
   const text=buildShareText();
   document.getElementById("shareTextarea").value=text;
@@ -3472,7 +3559,17 @@ function renderSavedCratesList(){
       <div class="scr-name" id="scrname-${c.id}">${escAttr(c.name)}</div>
       <div class="scr-count">${c.albums.length} records</div>
       <button class="scr-rename-btn" onclick="renameSavedCrate(${c.id},event)">✎ Rename</button>
+      <button class="scr-update-btn" onclick="promptUpdateCrateLink(${c.id},event)" title="Refresh with an updated link from your friend" style="background:rgba(74,143,212,.10);color:#4a8fd4;border:1px solid #2a5a8a;border-radius:3px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:4px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .15s">🔗 Update Link</button>
       <button class="scr-delete-btn" onclick="deleteSavedCrate(${c.id},event)">🗑</button>
+    </div>
+    <div class="scr-update-panel" id="scr-update-${c.id}" style="display:none;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;margin-top:-2px">
+      <p style="font-size:11px;color:var(--cream-dim);margin-bottom:8px">Paste your friend's updated share link — new albums will be added, existing ones kept.</p>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="scr-link-${c.id}" placeholder="Paste updated link…" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--cream);font-family:'Inter',sans-serif;font-size:12px;padding:7px 10px;outline:none">
+        <button onclick="applyUpdateCrateLink(${c.id})" style="background:#4a8fd4;border:none;border-radius:3px;color:#fff;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;padding:7px 12px;cursor:pointer;white-space:nowrap">Refresh</button>
+        <button onclick="closeUpdatePanel(${c.id})" style="background:none;border:1px solid var(--border);border-radius:3px;color:var(--cream-dim);font-family:'Inter',sans-serif;font-size:11px;padding:7px 10px;cursor:pointer">✕</button>
+      </div>
+      <div id="scr-update-msg-${c.id}" style="margin-top:6px;font-size:11px"></div>
     </div>`).join("");
 
   list.querySelectorAll(".saved-crate-row").forEach(row=>{
@@ -3530,6 +3627,59 @@ function deleteSavedCrate(id,e){
   if(activeFriendCrateId===id){activeFriendCrateId=null;activeFriendAlbums=[];}
   renderSavedCratesList();
   showToast("Crate deleted.");
+}
+
+function promptUpdateCrateLink(id,e){
+  e.stopPropagation();
+  // Close any other open panels first
+  document.querySelectorAll(".scr-update-panel").forEach(p=>p.style.display="none");
+  const panel=document.getElementById(`scr-update-${id}`);
+  if(panel){panel.style.display="block";document.getElementById(`scr-link-${id}`).focus();}
+}
+
+function closeUpdatePanel(id){
+  const panel=document.getElementById(`scr-update-${id}`);
+  if(panel){panel.style.display="none";}
+  const msg=document.getElementById(`scr-update-msg-${id}`);
+  if(msg)msg.innerHTML="";
+}
+
+async function applyUpdateCrateLink(id){
+  const input=document.getElementById(`scr-link-${id}`);
+  const msg=document.getElementById(`scr-update-msg-${id}`);
+  const raw=input?input.value.trim():"";
+  const code=extractShareCodeFromInput(raw);
+  if(!code){
+    if(msg)msg.innerHTML=`<span style="color:var(--red-bright)">Paste a valid shared crate link first.</span>`;
+    return;
+  }
+  if(msg)msg.innerHTML=`<span style="color:var(--cream-dim)">Loading…</span>`;
+  try{
+    const newAlbums=await decodeCrateLink(code);
+    const crates=loadFriendCrates();
+    const c=crates.find(x=>x.id===id);
+    if(!c){if(msg)msg.innerHTML=`<span style="color:var(--red-bright)">Crate not found.</span>`;return;}
+    // Merge: add albums not already present (match on artist+title lowercase)
+    const existingKeys=new Set(c.albums.map(a=>(a.artist+"|"+a.title).toLowerCase()));
+    const toAdd=newAlbums.filter(a=>!existingKeys.has((a.artist+"|"+a.title).toLowerCase()));
+    c.albums=[...c.albums,...toAdd];
+    saveFriendCrates(crates);
+    if(activeFriendCrateId===id){
+      activeFriendAlbums=c.albums;
+      renderFriendResults(c.albums);
+      renderFriendBanner(c.albums);
+    }
+    renderSavedCratesList();
+    if(toAdd.length){
+      if(msg)msg.innerHTML=`<span style="color:#7fb8a0">✓ Added ${toAdd.length} new album${toAdd.length!==1?'s':''}!</span>`;
+      showToast(`Updated "${c.name}" — ${toAdd.length} new album${toAdd.length!==1?'s':''} added`);
+    }else{
+      if(msg)msg.innerHTML=`<span style="color:var(--cream-dim)">No new albums found — crate is already up to date.</span>`;
+    }
+    if(input)input.value="";
+  }catch{
+    if(msg)msg.innerHTML=`<span style="color:var(--red-bright)">That link couldn't be read — it may be incomplete or corrupted.</span>`;
+  }
 }
 
 function switchFriendTab(tab){
