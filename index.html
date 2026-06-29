@@ -37,8 +37,8 @@
   .share-crate-btn:hover{background:var(--gold);color:var(--bg);border-color:var(--gold)}
   .view-friend-btn{background:var(--surface2);color:#7fb8a0;border:1px solid #3a6a55;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
   .view-friend-btn:hover{background:#7fb8a0;color:#0D0D0D;border-color:#7fb8a0}
-  .spin-btn{background:var(--gold);color:var(--bg);border:none;border-radius:4px;font-family:'Playfair Display',serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:background .2s,transform .1s}
-  .spin-btn:hover{background:#DFB95C;transform:translateY(-1px)}
+  .spin-btn{background:var(--surface2);color:#c97f4f;border:1px solid #c97f4f;border-radius:4px;font-family:'Playfair Display',serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,transform .1s;display:flex;align-items:center;gap:6px}
+  .spin-btn:hover{background:#c97f4f;color:var(--bg);transform:translateY(-1px)}
 
   /* FILTER BAR */
   .filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -397,11 +397,10 @@
     .logo span{display:none}
     .header-search{flex:1;max-width:none;min-width:90px}
     .header-search input{font-size:11px;padding:6px 28px 6px 8px}
-    .header-actions{flex-basis:100%;flex-wrap:wrap;justify-content:flex-start;gap:6px}
-    .stats-btn,.want-list-btn,.add-album-btn,.share-crate-btn,.view-friend-btn{
-      padding:6px 7px;font-size:10px;gap:3px
+    .header-actions{flex-basis:100%;flex-wrap:nowrap;justify-content:flex-start;gap:3px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .stats-btn,.want-list-btn,.add-album-btn,.share-crate-btn,.view-friend-btn,.spin-btn{
+      padding:6px 6px;font-size:9.5px;gap:3px;flex-shrink:0
     }
-    .spin-btn{padding:6px 8px;font-size:11px}
     /* Filter bar */
     .filter-bar{padding:7px 10px;gap:5px;flex-wrap:nowrap;overflow-x:auto}
     .filter-label{display:none}
@@ -441,7 +440,7 @@
     <button class="share-crate-btn" id="shareCrateBtn"><span>📤</span><span>Share My Crate</span></button>
     <button class="view-friend-btn" id="viewFriendBtn"><span>👀</span><span>View a Friend's Crate</span></button>
     <button class="add-album-btn" id="addAlbumBtn"><span style="font-size:16px;line-height:1">＋</span><span>Add to Crate</span></button>
-    <button class="spin-btn" id="spinBtn">🎲 Spin</button>
+    <button class="spin-btn" id="spinBtn"><span>🎲</span><span>Spin</span></button>
   </div>
 </header>
 
@@ -618,12 +617,12 @@
         <div class="form-field"><label>Year</label><input class="form-input" id="formYear" type="number" placeholder="1977" min="1900" max="2030"></div>
         <div class="form-field"><label>Genre</label>
           <select class="form-select" id="formGenre">
+            <option value="__custom__">✚ Create your own…</option>
             <option>Classic Rock</option><option>Hard Rock</option><option>Heavy Metal</option>
             <option>Progressive Rock</option><option>New Wave</option><option>Punk / Alternative</option>
             <option>Pop</option><option>R&B / Soul</option><option>Hip-Hop</option><option>Country</option>
             <option>Singer-Songwriter</option><option>Soundtrack</option><option>Classical</option>
             <option>Holiday</option><option>Compilation</option>
-            <option value="__custom__">✚ Create your own…</option>
           </select>
         </div>
       </div>
@@ -737,20 +736,12 @@
       <!-- ADD ALBUM SECTION -->
       <div class="friend-add-section" id="friendAddSection" style="display:none">
         <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px">＋ Add a New Album</div>
-        <div class="friend-add-row">
-          <input class="friend-add-input" id="friendAddArtist" placeholder="Artist">
-          <input class="friend-add-input" id="friendAddTitle" placeholder="Album title">
-          <input class="friend-add-input" id="friendAddYear" placeholder="Year" style="max-width:72px">
-        </div>
-        <div class="friend-add-row" style="margin-bottom:0">
-          <select class="filter-select" id="friendAddGenre" style="flex:1;padding:8px 28px 8px 10px;font-size:12px">
-            <option>Classic Rock</option><option>Hard Rock</option><option>Heavy Metal</option>
-            <option>Progressive Rock</option><option>New Wave</option><option>Punk / Alternative</option>
-            <option>Pop</option><option>R&amp;B / Soul</option><option>Hip-Hop</option><option>Country</option>
-            <option>Singer-Songwriter</option><option>Soundtrack</option><option>Classical</option>
-            <option>Holiday</option><option>Compilation</option>
-          </select>
-          <button class="friend-add-btn" onclick="addAlbumToFriendCrate()">＋ Add Album</button>
+        <div class="friend-add-row" style="margin-bottom:10px">
+          <div class="autocomplete-wrap" id="friendAddAutoWrap" style="flex:1">
+            <input class="friend-add-input" id="friendAddSearchInput" placeholder="Search artist or album — results appear as you type…" autocomplete="off" style="width:100%">
+            <div class="autocomplete-dropdown" id="friendAddAutoDropdown"></div>
+          </div>
+          <button class="friend-add-btn" id="friendAddManualBtn" onclick="addAlbumToFriendCrateManual()">＋ Add Manually</button>
         </div>
       </div>
     </div>
@@ -758,6 +749,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
 
 <script>
 // ── GENRE IMAGES ──
@@ -1520,8 +1512,8 @@ function buildFilters(){
   const gSel=document.getElementById("genreFilter"),dSel=document.getElementById("decadeFilter");
   while(gSel.options.length>1)gSel.remove(1);
   while(dSel.options.length>1)dSel.remove(1);
-  allGenres().forEach(g=>gSel.add(new Option(g,g)));
   gSel.add(new Option("✚ Create your own…","__custom__"));
+  allGenres().forEach(g=>gSel.add(new Option(g,g)));
   unique(vinylCollection.map(a=>a.decade)).sort((a,b)=>a-b).forEach(d=>dSel.add(new Option(decadeLabel(d),d)));
 }
 
@@ -1606,8 +1598,8 @@ function openGenreEditor(){
   const sel=document.getElementById("genreEditorSelect");
   sel.innerHTML="";
   const a=vinylCollection.find(x=>x.id===currentDetailId);
-  allGenres().forEach(g=>{const o=new Option(g,g);if(a&&a.genre===g)o.selected=true;sel.add(o)});
   sel.add(new Option("✚ Create your own…","__custom__"));
+  allGenres().forEach(g=>{const o=new Option(g,g);if(a&&a.genre===g)o.selected=true;sel.add(o)});
   sel.onchange=()=>{
     document.getElementById("customGenreWrap").style.display=sel.value==="__custom__"?"block":"none";
     if(sel.value==="__custom__")document.getElementById("customGenreInput").focus();
@@ -3321,16 +3313,61 @@ function updateSavedFriendCrate(){
   showToast("Crate updated!");
 }
 
-function addAlbumToFriendCrate(){
-  const artist=document.getElementById("friendAddArtist").value.trim();
-  const title=document.getElementById("friendAddTitle").value.trim();
-  const year=document.getElementById("friendAddYear").value.trim();
-  const genre=document.getElementById("friendAddGenre").value;
-  if(!artist||!title){showToast("Artist and title are required.");return;}
-  activeFriendAlbums.push({artist,title,year:year||"",genre,fav:false});
-  document.getElementById("friendAddArtist").value="";
-  document.getElementById("friendAddTitle").value="";
-  document.getElementById("friendAddYear").value="";
+// ── LIVE SEARCH FOR FRIEND'S CRATE ADD ──
+let _friendAddSelectedItem = null;
+
+const friendAddDebounce=debounce(async(q)=>{
+  _friendAddSelectedItem=null;
+  if(q.length<2){closeAutocomplete("friendAddAutoDropdown");return;}
+  const drop=document.getElementById("friendAddAutoDropdown");
+  drop.innerHTML=`<div class="ac-spinner">Searching…</div>`;drop.classList.add("open");
+  try{
+    const results=await fetchAlbumSearch(q,8);
+    buildAcDropdown(drop,results,(item)=>{
+      _friendAddSelectedItem=item;
+      document.getElementById("friendAddSearchInput").value=`${item.collectionName||""} — ${item.artistName||""}`;
+      closeAutocomplete("friendAddAutoDropdown");
+      addAlbumToFriendCrateFromSearch(item);
+    },"crate");
+  }catch{drop.classList.remove("open");}
+},380);
+
+document.getElementById("friendAddSearchInput").addEventListener("input",e=>{friendAddDebounce(e.target.value.trim());});
+document.getElementById("friendAddSearchInput").addEventListener("blur",()=>setTimeout(()=>closeAutocomplete("friendAddAutoDropdown"),200));
+document.getElementById("friendAddSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(_friendAddSelectedItem)addAlbumToFriendCrateFromSearch(_friendAddSelectedItem);else addAlbumToFriendCrateManual();}});
+
+function addAlbumToFriendCrateFromSearch(item){
+  const year=item.releaseDate?String(item.releaseDate).slice(0,4):"";
+  let genre="";
+  if(item._src==="discogs"&&item._raw){
+    genre=(item._raw.genre&&item._raw.genre[0])||(item._raw.style&&item._raw.style[0])||"";
+  }
+  const artist=item.artistName||"Unknown Artist",title=item.collectionName||"Unknown Album";
+  activeFriendAlbums.push({artist,title,year,genre,fav:false});
+  document.getElementById("friendAddSearchInput").value="";
+  _friendAddSelectedItem=null;
+  renderFriendResults(activeFriendAlbums);
+  showToast(`Added ${artist} — ${title}`);
+}
+
+async function addAlbumToFriendCrateManual(){
+  const raw=document.getElementById("friendAddSearchInput").value.trim();
+  if(!raw){showToast("Type an artist or album name first.");return;}
+  let artist="Unknown Artist",title=raw,year="",genre="";
+  // Support "Title — Artist" or "Artist - Title" typed text
+  const dashParts=raw.split(/—| - /).map(s=>s.trim());
+  if(dashParts.length===2){title=dashParts[0];artist=dashParts[1];}
+  try{
+    const results=await fetchAlbumSearch(raw,1);
+    if(results.length){
+      const hit=results[0];
+      artist=hit.artistName||artist;title=hit.collectionName||title;
+      if(hit.releaseDate)year=String(hit.releaseDate).slice(0,4);
+      if(hit._src==="discogs"&&hit._raw)genre=(hit._raw.genre&&hit._raw.genre[0])||(hit._raw.style&&hit._raw.style[0])||"";
+    }
+  }catch{}
+  activeFriendAlbums.push({artist,title,year,genre,fav:false});
+  document.getElementById("friendAddSearchInput").value="";
   renderFriendResults(activeFriendAlbums);
   showToast(`Added ${artist} — ${title}`);
 }
