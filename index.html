@@ -836,6 +836,17 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 const DISCOGS_TOKEN = ""; // <-- paste your Discogs personal access token here
 const DISCOGS_UA = "TheCrateVinylApp/1.0"; // Discogs requires a User-Agent string
 
+// Spotify Web API uses the Client Credentials flow (app-only auth, no user
+// login needed) to search. Create an app at developer.spotify.com/dashboard
+// and paste its Client ID / Secret below. Leave blank to skip this source.
+const SPOTIFY_CLIENT_ID = "";
+const SPOTIFY_CLIENT_SECRET = "";
+
+// TheAudioDB — free public API. "2" is TheAudioDB's shared/free test key
+// (rate-limited but usable with no signup); paste your own Patreon key here
+// for higher limits: https://www.theaudiodb.com/api_guide.php
+const AUDIODB_API_KEY = "2";
+
 // Normalizes either an iTunes or a Discogs result into one common shape so the
 // rest of the app (autocomplete dropdown, search results list, add/want flows)
 // never has to care which source it came from.
