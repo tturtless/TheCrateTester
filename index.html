@@ -235,6 +235,7 @@
   .autocomplete-wrap{position:relative;flex:1}
   .autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--gold-dim);border-top:none;border-radius:0 0 4px 4px;z-index:50;max-height:260px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.7)}
   .autocomplete-dropdown.open{display:block}
+  .autocomplete-dropdown.fixed-pos{position:fixed;border-radius:4px;border-top:1px solid var(--gold-dim)}
   .ac-row{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border)}
   .ac-row:last-child{border-bottom:none}
   .ac-row:hover,.ac-row.focused{background:rgba(201,168,76,.08)}
@@ -2872,12 +2873,29 @@ document.getElementById("wantlistClose").addEventListener("click",()=>{document.
 document.getElementById("wantlistModal").addEventListener("click",e=>{if(e.target===document.getElementById("wantlistModal"))document.getElementById("wantlistModal").classList.remove("open");});
 document.getElementById("wantSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(_wantSelectedItem)commitWantItem(_wantSelectedItem);else addWantManual();}});
 
+// Positions the wishlist search dropdown as a fixed-position element anchored
+// under its input, sized against the real viewport, so it's never clipped by
+// the wishlist modal's own scroll container.
+function positionWantDropdown(){
+  const input=document.getElementById("wantSearchInput");
+  const drop=document.getElementById("wantAutoDropdown");
+  if(!input||!drop)return;
+  const rect=input.getBoundingClientRect();
+  const pad=8;
+  drop.classList.add("fixed-pos");
+  drop.style.left=rect.left+"px";
+  drop.style.width=rect.width+"px";
+  drop.style.top=(rect.bottom+2)+"px";
+  drop.style.maxHeight=Math.max(120,window.innerHeight-rect.bottom-pad*2)+"px";
+}
+
 // ── LIVE SEARCH FOR WANTLIST ──
 const wantDebounce=debounce(async(q)=>{
   _wantSelectedItem=null;
   if(q.length<2){closeAutocomplete("wantAutoDropdown");return;}
   const drop=document.getElementById("wantAutoDropdown");
   drop.innerHTML=`<div class="ac-spinner">Searching…</div>`;drop.classList.add("open");
+  positionWantDropdown();
   try{
     const results=await fetchAlbumSearch(q,8);
     buildAcDropdown(drop,results,(item)=>{
@@ -2887,11 +2905,13 @@ const wantDebounce=debounce(async(q)=>{
       // Immediately commit
       commitWantItem(item);
     },"want");
+    positionWantDropdown();
   }catch{drop.classList.remove("open");}
 },380);
 
 document.getElementById("wantSearchInput").addEventListener("input",e=>{wantDebounce(e.target.value.trim());});
 document.getElementById("wantSearchInput").addEventListener("blur",()=>setTimeout(()=>closeAutocomplete("wantAutoDropdown"),200));
+window.addEventListener("resize",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
 
 function commitWantItem(itunesItem){
   const year=itunesItem.releaseDate?String(itunesItem.releaseDate).slice(0,4):"";
