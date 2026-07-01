@@ -2869,8 +2869,8 @@ function addManualAlbum(){
 let _wantSelectedItem = null;
 
 document.getElementById("wantListBtn").addEventListener("click",()=>{document.getElementById("wantlistModal").classList.add("open");renderWantList();});
-document.getElementById("wantlistClose").addEventListener("click",()=>{document.getElementById("wantlistModal").classList.remove("open");});
-document.getElementById("wantlistModal").addEventListener("click",e=>{if(e.target===document.getElementById("wantlistModal"))document.getElementById("wantlistModal").classList.remove("open");});
+document.getElementById("wantlistClose").addEventListener("click",()=>{document.getElementById("wantlistModal").classList.remove("open");closeAutocomplete("wantAutoDropdown");});
+document.getElementById("wantlistModal").addEventListener("click",e=>{if(e.target===document.getElementById("wantlistModal")){document.getElementById("wantlistModal").classList.remove("open");closeAutocomplete("wantAutoDropdown");}});
 document.getElementById("wantSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(_wantSelectedItem)commitWantItem(_wantSelectedItem);else addWantManual();}});
 
 // Positions the wishlist search dropdown as a fixed-position element anchored
@@ -2880,9 +2880,15 @@ function positionWantDropdown(){
   const input=document.getElementById("wantSearchInput");
   const drop=document.getElementById("wantAutoDropdown");
   if(!input||!drop)return;
+  // The wishlist modal has a CSS transform (from its open animation), which makes it
+  // a containing block for position:fixed descendants — so a fixed-position dropdown
+  // left inside it would still be positioned/clipped relative to the modal, not the
+  // viewport. Move it to <body> while it's open to escape that.
+  if(drop.parentElement!==document.body)document.body.appendChild(drop);
   const rect=input.getBoundingClientRect();
   const pad=8;
   drop.classList.add("fixed-pos");
+  drop.style.right="auto";
   drop.style.left=rect.left+"px";
   drop.style.width=rect.width+"px";
   drop.style.top=(rect.bottom+2)+"px";
