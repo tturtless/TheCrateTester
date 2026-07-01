@@ -295,6 +295,9 @@
   .share-textarea{width:100%;min-height:260px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--cream);font-family:'Courier Prime',monospace;font-size:12px;line-height:1.55;padding:12px;resize:vertical;outline:none}
   .share-textarea:focus{border-color:var(--gold-dim)}
   .share-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .share-wishlist-toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--cream-dim);cursor:pointer;user-select:none}
+  .share-wishlist-toggle input[type="checkbox"]{width:16px;height:16px;accent-color:var(--want);cursor:pointer}
+  .share-wishlist-toggle span{color:var(--cream)}
   .share-copy-btn{background:var(--gold);color:var(--bg);border:1px solid var(--gold);border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;cursor:pointer;transition:background .2s}
   .share-copy-btn:hover{background:#DFB95C}
   .share-meta{font-size:11px;color:var(--cream-dim);margin-top:8px;font-family:'Courier Prime',monospace}
@@ -303,6 +306,13 @@
   .friend-clear-btn{background:none;color:var(--cream-dim);border:1px solid var(--border);border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:9px 16px;cursor:pointer;transition:border-color .2s,color .2s}
   .friend-clear-btn:hover{border-color:var(--red-bright);color:var(--red-bright)}
   .friend-banner{background:rgba(127,184,160,.10);border:1px solid #3a6a55;border-radius:4px;padding:10px 14px;font-size:12px;color:#9accb6;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .friend-wishlist-link:hover{background:rgba(201,168,76,.16)}
+  .friend-wishlist-back{background:none;border:1px solid var(--border);border-radius:3px;color:var(--cream-dim);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:7px 12px;cursor:pointer;transition:border-color .15s,color .15s}
+  .friend-wishlist-back:hover{border-color:var(--gold-dim);color:var(--gold)}
+  .fwc-add-btn{position:absolute;top:6px;right:6px;z-index:5;width:30px;height:30px;border-radius:50%;background:rgba(13,13,13,.78);border:1px solid var(--gold-dim);color:var(--cream);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;backdrop-filter:blur(3px);opacity:0}
+  .friend-card:hover .fwc-add-btn{opacity:1}
+  .fwc-add-btn:hover{background:var(--gold);color:var(--bg)}
+  .fwc-add-btn.added{opacity:1;background:var(--want);border-color:var(--want);color:#fff;cursor:default}
   .friend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .friend-card{background:var(--surface2);border:1px solid var(--border);border-radius:3px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}
   .friend-card:hover{transform:translateY(-4px);border-color:var(--gold-dim);box-shadow:0 12px 32px rgba(0,0,0,.6)}
@@ -715,6 +725,10 @@
     </div>
     <div class="share-body">
       <textarea class="share-textarea" id="shareTextarea" readonly></textarea>
+      <label class="share-wishlist-toggle" id="shareWishlistToggle" for="shareIncludeWishlist">
+        <input type="checkbox" id="shareIncludeWishlist">
+        <span>🎯 Include my Wish List</span>
+      </label>
       <div class="share-actions">
         <button class="share-copy-btn" id="shareCopyBtn">📋 Copy to Clipboard</button>
         <button class="share-copy-btn" id="shareLinkBtn">🔗 Copy as Link</button>
@@ -764,22 +778,31 @@
 
     <!-- TAB: BROWSE (shown after loading) -->
     <div class="friend-tab-panel" id="ftab-browse">
-      <div class="friend-search-row" id="friendSearchRow" style="display:none">
-        <input type="text" class="friend-search-input" id="friendSearchInput" placeholder="Search this crate — find an album to add to your wish list…" autocomplete="off">
-        <div class="friend-search-count" id="friendSearchCount"></div>
-      </div>
-      <div id="friendResults"></div>
-
-      <!-- ADD ALBUM SECTION -->
-      <div class="friend-add-section" id="friendAddSection" style="display:none">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px">＋ Add a New Album</div>
-        <div class="friend-add-row" style="margin-bottom:10px">
-          <div class="autocomplete-wrap" id="friendAddAutoWrap" style="flex:1">
-            <input class="friend-add-input" id="friendAddSearchInput" placeholder="Search artist or album — results appear as you type…" autocomplete="off" style="width:100%">
-            <div class="autocomplete-dropdown" id="friendAddAutoDropdown"></div>
-          </div>
-          <button class="friend-add-btn" id="friendAddManualBtn" onclick="addAlbumToFriendCrateManual()">＋ Add Manually</button>
+      <div id="friendBrowseMain">
+        <div class="friend-search-row" id="friendSearchRow" style="display:none">
+          <input type="text" class="friend-search-input" id="friendSearchInput" placeholder="Search this crate — find an album to add to your wish list…" autocomplete="off">
+          <div class="friend-search-count" id="friendSearchCount"></div>
         </div>
+        <div id="friendResults"></div>
+
+        <!-- ADD ALBUM SECTION -->
+        <div class="friend-add-section" id="friendAddSection" style="display:none">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px">＋ Add a New Album</div>
+          <div class="friend-add-row" style="margin-bottom:10px">
+            <div class="autocomplete-wrap" id="friendAddAutoWrap" style="flex:1">
+              <input class="friend-add-input" id="friendAddSearchInput" placeholder="Search artist or album — results appear as you type…" autocomplete="off" style="width:100%">
+              <div class="autocomplete-dropdown" id="friendAddAutoDropdown"></div>
+            </div>
+            <button class="friend-add-btn" id="friendAddManualBtn" onclick="addAlbumToFriendCrateManual()">＋ Add Manually</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FRIEND WISHLIST SUB-VIEW -->
+      <div id="friendWishlistView" style="display:none">
+        <button class="friend-wishlist-back" id="friendWishlistBackBtn">← Back to Crate</button>
+        <div class="friend-banner" id="friendWishlistBannerText" style="margin-top:12px"></div>
+        <div class="friend-grid" id="friendWishlistGrid"></div>
       </div>
     </div>
   </div>
@@ -3226,7 +3249,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){
 }});
 
 // ── SHARE MY CRATE ──
-function buildShareText(){
+function buildShareText(includeWishlist){
   const lines=[];
   lines.push("THE CRATE — Shared Collection");
   lines.push(`${vinylCollection.length} records`);
@@ -3235,6 +3258,16 @@ function buildShareText(){
     const fav=favorites.has(a.id)?" ★":"";
     lines.push(`${a.artist} — ${a.title} (${a.year}) [${a.genre}]${fav}`);
   });
+  if(includeWishlist&&wantList.length){
+    lines.push("");
+    lines.push("=== WISH LIST ===");
+    lines.push(`${wantList.length} record${wantList.length!==1?'s':''}`);
+    lines.push("---");
+    wantList.slice().sort((a,b)=>(a.artist||"").localeCompare(b.artist||"")||(a.title||"").localeCompare(b.title||"")).forEach(a=>{
+      const fav=a.fav?" ★":"";
+      lines.push(`${a.artist||"Unknown Artist"} — ${a.title} (${a.year||"—"}) [${a.genre||"Unsorted"}]${fav}`);
+    });
+  }
   return lines.join("\n");
 }
 
@@ -3258,13 +3291,22 @@ const TSV_ESC_TAB="\u2409", TSV_ESC_NL="\u240A"; // rare control-picture chars, 
 function tsvSafe(s){return String(s).replace(/\t/g,TSV_ESC_TAB).replace(/\n/g,TSV_ESC_NL)}
 function tsvUnsafe(s){return String(s).replace(new RegExp(TSV_ESC_TAB,"g"),"\t").replace(new RegExp(TSV_ESC_NL,"g"),"\n")}
 
-async function encodeCrateLink(albums){
-  const genreList=[...new Set(albums.map(a=>a.genre||"Unsorted"))];
+async function encodeCrateLink(albums,wishlist){
+  wishlist=wishlist||[];
+  const genreList=[...new Set([...albums.map(a=>a.genre||"Unsorted"),...wishlist.map(a=>a.genre||"Unsorted")])];
   const rows=albums.map(a=>{
     const gi=genreList.indexOf(a.genre||"Unsorted");
     return [tsvSafe(a.artist),tsvSafe(a.title),a.year,gi,favorites.has(a.id)?1:0].join("\t");
   });
-  const payload="v2\n"+genreList.map(tsvSafe).join("\t")+"\n"+rows.join("\n");
+  // Wishlist rows reuse the exact same tab-delimited/genre-index scheme as crate rows
+  // (artist, title, year, genre-index, fav), so decoding is symmetric — the only
+  // difference is which section of the payload they land in.
+  const wishRows=wishlist.map(a=>{
+    const gi=genreList.indexOf(a.genre||"Unsorted");
+    return [tsvSafe(a.artist),tsvSafe(a.title),a.year,gi,a.fav?1:0].join("\t");
+  });
+  let payload="v3\n"+genreList.map(tsvSafe).join("\t")+"\n"+rows.join("\n");
+  if(wishRows.length)payload+="\n===WISH===\n"+wishRows.join("\n");
   const utf8Bytes=new TextEncoder().encode(payload);
 
   if(typeof CompressionStream==="function"){
@@ -3299,22 +3341,37 @@ async function decodeCrateLink(code){
   const payload=new TextDecoder().decode(bytes);
   const nl1=payload.indexOf("\n");
   const version=payload.slice(0,nl1);
-  if(version!=="v2")throw new Error("unsupported version");
+  if(version!=="v2"&&version!=="v3")throw new Error("unsupported version");
   const nl2=payload.indexOf("\n",nl1+1);
   const genreList=payload.slice(nl1+1,nl2).split("\t").map(tsvUnsafe);
-  const body2=payload.slice(nl2+1);
-  const lines=body2.length?body2.split("\n"):[];
-  return lines.map(line=>{
-    const parts=line.split("\t");
-    const gi=parseInt(parts[3],10);
-    return {
-      artist:tsvUnsafe(parts[0]||""),
-      title:tsvUnsafe(parts[1]||""),
-      year:parts[2]||"",
-      genre:genreList[gi]||"Unsorted",
-      fav:parts[4]==="1"
-    };
-  });
+  let body2=payload.slice(nl2+1);
+
+  // v3 payloads may carry an optional wishlist section after a "===WISH===" marker
+  // on its own line. Split it off before parsing the crate rows.
+  let wishBody="";
+  const wishMarker="\n===WISH===\n";
+  const wishIdx=body2.indexOf(wishMarker);
+  if(wishIdx!==-1){
+    wishBody=body2.slice(wishIdx+wishMarker.length);
+    body2=body2.slice(0,wishIdx);
+  }
+  const parseRows=str=>{
+    const lines=str.length?str.split("\n"):[];
+    return lines.map(line=>{
+      const parts=line.split("\t");
+      const gi=parseInt(parts[3],10);
+      return {
+        artist:tsvUnsafe(parts[0]||""),
+        title:tsvUnsafe(parts[1]||""),
+        year:parts[2]||"",
+        genre:genreList[gi]||"Unsorted",
+        fav:parts[4]==="1"
+      };
+    });
+  };
+  const albums=parseRows(body2);
+  albums.wishlist=wishBody?parseRows(wishBody):[];
+  return albums;
 }
 
 // Legacy v1 format support: plain base64url of a JSON tuple array, no prefix tag.
@@ -3326,8 +3383,8 @@ function decodeLegacyCrateLink(code){
   return tuples.map(t=>({artist:String(t[0]||""),title:String(t[1]||""),year:String(t[2]||""),genre:String(t[3]||"Unsorted"),fav:!!t[4]}));
 }
 
-async function buildShareLink(){
-  const code=await encodeCrateLink(vinylCollection);
+async function buildShareLink(includeWishlist){
+  const code=await encodeCrateLink(vinylCollection,includeWishlist?wantList:[]);
   const url=new URL("https://tturtless.github.io/AlbumCrate/");
   url.hash="share="+code;
   return url.toString();
@@ -3392,7 +3449,8 @@ document.getElementById("importLinkBtnInline").addEventListener("click",async()=
 });
 
 document.getElementById("shareCrateBtn").addEventListener("click",()=>{
-  const text=buildShareText();
+  document.getElementById("shareIncludeWishlist").checked=false;
+  const text=buildShareText(false);
   document.getElementById("shareTextarea").value=text;
   document.getElementById("shareMeta").textContent=`${vinylCollection.length} record${vinylCollection.length!==1?'s':''} ready to share · ★ = favorite`;
   document.getElementById("shareLinkMeta").style.display="none";
@@ -3400,6 +3458,14 @@ document.getElementById("shareCrateBtn").addEventListener("click",()=>{
 });
 document.getElementById("shareClose").addEventListener("click",()=>document.getElementById("shareModal").classList.remove("open"));
 document.getElementById("shareModal").addEventListener("click",e=>{if(e.target===document.getElementById("shareModal"))document.getElementById("shareModal").classList.remove("open")});
+document.getElementById("shareIncludeWishlist").addEventListener("change",function(){
+  const includeWishlist=this.checked;
+  const text=buildShareText(includeWishlist);
+  document.getElementById("shareTextarea").value=text;
+  const wishNote=includeWishlist&&wantList.length?` · +${wantList.length} wish list record${wantList.length!==1?'s':''}`:"";
+  document.getElementById("shareMeta").textContent=`${vinylCollection.length} record${vinylCollection.length!==1?'s':''} ready to share · ★ = favorite${wishNote}`;
+  document.getElementById("shareLinkMeta").style.display="none";
+});
 document.getElementById("shareCopyBtn").addEventListener("click",async()=>{
   const ta=document.getElementById("shareTextarea");
   try{
@@ -3413,15 +3479,16 @@ document.getElementById("shareCopyBtn").addEventListener("click",async()=>{
 });
 document.getElementById("shareLinkBtn").addEventListener("click",async()=>{
   let link;
+  const includeWishlist=document.getElementById("shareIncludeWishlist").checked;
   try{
-    link=await buildShareLink();
+    link=await buildShareLink(includeWishlist);
   }catch{
     showToast("Couldn't build a link — try the text option instead.");
     return;
   }
   const metaEl=document.getElementById("shareLinkMeta");
   metaEl.style.display="block";
-  metaEl.textContent=`Link length: ${link.length} characters`;
+  metaEl.textContent=`Link length: ${link.length} characters${includeWishlist&&wantList.length?` · includes ${wantList.length} wish list record${wantList.length!==1?'s':''}`:''}`;
   try{
     await navigator.clipboard.writeText(link);
     showToast("Link copied! Send it to a friend.");
@@ -3436,16 +3503,33 @@ document.getElementById("shareLinkBtn").addEventListener("click",async()=>{
 
 // ── VIEW A FRIEND'S CRATE ──
 function parseFriendCrateText(raw){
-  const lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const lines=raw.split(/\r?\n/).map(l=>l.trim());
+  const lineRe=/^(.+?)\s+[—-]\s+(.+?)\s*\((\d{3,4}|—)\)\s*(?:\[([^\]]+)\])?\s*(★)?$/;
+  const parseLine=line=>{
+    const m=line.match(lineRe);
+    if(!m)return null;
+    return {artist:m[1].trim(),title:m[2].trim(),year:m[3]==="—"?"":m[3].trim(),genre:(m[4]||"Unsorted").trim(),fav:!!m[5]};
+  };
+  const wishHeaderIdx=lines.findIndex(l=>/^===\s*WISH LIST\s*===$/i.test(l));
+  const crateLines=wishHeaderIdx===-1?lines:lines.slice(0,wishHeaderIdx);
+  const wishLines=wishHeaderIdx===-1?[]:lines.slice(wishHeaderIdx+1);
+
   const albums=[];
-  const lineRe=/^(.+?)\s+[—-]\s+(.+?)\s*\((\d{3,4})\)\s*(?:\[([^\]]+)\])?\s*(★)?$/;
-  lines.forEach(line=>{
+  crateLines.filter(Boolean).forEach(line=>{
     if(/^THE CRATE/i.test(line))return;
     if(/^\d+\s+records?$/i.test(line))return;
     if(/^-{2,}$/.test(line))return;
-    const m=line.match(lineRe);
-    if(m){albums.push({artist:m[1].trim(),title:m[2].trim(),year:m[3].trim(),genre:(m[4]||"Unsorted").trim(),fav:!!m[5]});}
+    const parsed=parseLine(line);
+    if(parsed)albums.push(parsed);
   });
+  const wishlist=[];
+  wishLines.filter(Boolean).forEach(line=>{
+    if(/^\d+\s+records?$/i.test(line))return;
+    if(/^-{2,}$/.test(line))return;
+    const parsed=parseLine(line);
+    if(parsed)wishlist.push(parsed);
+  });
+  albums.wishlist=wishlist;
   return albums;
 }
 
@@ -3456,6 +3540,7 @@ function saveFriendCrates(crates){lsSet(FRIEND_CRATES_KEY,crates);}
 
 let activeFriendAlbums=[];   // currently browsed albums (may not be saved yet)
 let activeFriendCrateId=null; // null = unsaved session
+let activeFriendWishlist=[]; // wishlist decoded from the same share link/text, if included
 
 // ── COVER ART FOR FRIEND CARDS ──
 const friendCoverCache={};
@@ -3595,6 +3680,7 @@ function renderFriendBanner(albums){
   const crates=loadFriendCrates();
   const thisCrate=saved?crates.find(c=>c.id===activeFriendCrateId):null;
   const name=thisCrate?thisCrate.name:"Friend's Crate";
+  const wishlist=activeFriendWishlist||[];
 
   wrap.innerHTML=`
     <div class="friend-banner" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -3605,7 +3691,13 @@ function renderFriendBanner(albums){
           : `<button class="friend-save-crate-btn" onclick="promptSaveFriendCrate()" style="background:rgba(127,184,160,.12);color:#7fb8a0;border:1px solid #3a6a55;border-radius:3px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer">💾 Save to Friends</button>`
         }
       </span>
-    </div>`;
+    </div>
+    ${wishlist.length?`
+    <button class="friend-wishlist-link" id="friendWishlistLinkBtn" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:rgba(201,168,76,.08);border:1px solid var(--gold-dim);border-radius:4px;padding:9px 14px;margin-bottom:16px;color:var(--gold);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s">
+      🎯 View ${escAttr(name)}'s Wish List (${wishlist.length}) <span style="margin-left:auto;opacity:.7">→</span>
+    </button>`:""}`;
+  const wishBtn=document.getElementById("friendWishlistLinkBtn");
+  if(wishBtn)wishBtn.addEventListener("click",()=>openFriendWishlistView(name));
 }
 
 function promptSaveFriendCrate(){
@@ -3613,7 +3705,7 @@ function promptSaveFriendCrate(){
   if(!name||!name.trim())return;
   const crates=loadFriendCrates();
   const id=Date.now();
-  crates.push({id,name:name.trim(),albums:activeFriendAlbums});
+  crates.push({id,name:name.trim(),albums:activeFriendAlbums,wishlist:activeFriendWishlist});
   saveFriendCrates(crates);
   activeFriendCrateId=id;
   renderFriendBanner(activeFriendAlbums);
@@ -3725,6 +3817,7 @@ function openSavedFriendCrate(id){
   if(!c)return;
   activeFriendAlbums=c.albums;
   activeFriendCrateId=id;
+  activeFriendWishlist=c.wishlist||[];
   switchFriendTab("browse");
   document.getElementById("browseFriendTabBtn").style.display="";
   document.getElementById("friendSearchInput").value="";
@@ -3802,9 +3895,18 @@ async function applyUpdateCrateLink(id){
     const existingKeys=new Set(c.albums.map(a=>(a.artist+"|"+a.title).toLowerCase()));
     const toAdd=newAlbums.filter(a=>!existingKeys.has((a.artist+"|"+a.title).toLowerCase()));
     c.albums=[...c.albums,...toAdd];
+    // Merge the wishlist the same way, if the updated link included one
+    const newWishlist=newAlbums.wishlist||[];
+    if(newWishlist.length){
+      c.wishlist=c.wishlist||[];
+      const existingWishKeys=new Set(c.wishlist.map(a=>(a.artist+"|"+a.title).toLowerCase()));
+      const wishToAdd=newWishlist.filter(a=>!existingWishKeys.has((a.artist+"|"+a.title).toLowerCase()));
+      c.wishlist=[...c.wishlist,...wishToAdd];
+    }
     saveFriendCrates(crates);
     if(activeFriendCrateId===id){
       activeFriendAlbums=c.albums;
+      activeFriendWishlist=c.wishlist||[];
       renderFriendResults(c.albums);
       renderFriendBanner(c.albums);
     }
@@ -3821,9 +3923,67 @@ async function applyUpdateCrateLink(id){
   }
 }
 
+// ── VIEWING A FRIEND'S WISHLIST ──
+// Shows the albums a friend has marked as wanted (decoded from the same share
+// link/text as their crate), with a one-tap way to add any of them to your own
+// wish list — handy for figuring out what to get them.
+function openFriendWishlistView(name){
+  document.getElementById("friendBrowseMain").style.display="none";
+  document.getElementById("friendWishlistView").style.display="block";
+  document.getElementById("friendWishlistBannerText").innerHTML=
+    `🎯 <strong style="color:var(--cream)">${escAttr(name)}'s Wish List</strong> — ${activeFriendWishlist.length} record${activeFriendWishlist.length!==1?'s':''}`;
+  renderFriendWishlistGrid();
+}
+function closeFriendWishlistView(){
+  document.getElementById("friendWishlistView").style.display="none";
+  document.getElementById("friendBrowseMain").style.display="block";
+}
+function wantListHasAlbum(artist,title){
+  const key=(artist+"|"+title).toLowerCase();
+  return wantList.some(w=>(w.artist+"|"+w.title).toLowerCase()===key);
+}
+function renderFriendWishlistGrid(){
+  const grid=document.getElementById("friendWishlistGrid");
+  grid.innerHTML=activeFriendWishlist.map((a,i)=>{
+    const already=wantListHasAlbum(a.artist,a.title);
+    return `
+    <div class="friend-card" data-idx="${i}" style="cursor:default">
+      <div class="fc-art-wrap">
+        <img class="fc-art" id="fwc-art-${i}" src="${escAttr(getPlaceholderUrl(a.genre))}" alt="" referrerpolicy="no-referrer">
+        <button class="fwc-add-btn ${already?'added':''}" data-idx="${i}" title="${already?'Already on your wish list':'Add to my wish list'}">${already?'✓':'＋'}</button>
+      </div>
+      <div class="fc-body">
+        <div class="fc-artist">${escAttr(a.artist)}</div>
+        <div class="fc-title">${escAttr(a.title)}</div>
+        <div class="fc-meta">${escAttr(a.year||"—")} · ${escAttr(a.genre||"Unsorted")}${a.fav?' · ♥':''}</div>
+      </div>
+    </div>`;
+  }).join("");
+  grid.querySelectorAll(".fwc-add-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      if(btn.classList.contains("added"))return;
+      const a=activeFriendWishlist[+btn.dataset.idx];
+      const item={id:Date.now()+Math.floor(Math.random()*1000),artist:a.artist,title:a.title,year:a.year||"",genre:a.genre||"",artUrl:"",fav:false};
+      wantList.push(item);saveWantList();
+      btn.classList.add("added");btn.textContent="✓";btn.title="Already on your wish list";
+      showToast(`✓ "${a.title}" added to your wish list`);
+      // Fetch cover art in the background so it's ready next time the wishlist opens
+      fetchAlbumSearch(`${a.artist} ${a.title}`,1).then(r=>{if(r&&r[0]&&r[0].artworkUrl100){item.artUrl=r[0].artworkUrl100;saveWantList();}}).catch(()=>{});
+    });
+  });
+  // Load covers progressively
+  activeFriendWishlist.forEach((a,i)=>{
+    const img=document.getElementById(`fwc-art-${i}`);
+    if(!img)return;
+    fetchFriendCover(a.artist,a.title).then(url=>{if(url&&img)img.src=url});
+  });
+}
+document.getElementById("friendWishlistBackBtn").addEventListener("click",closeFriendWishlistView);
+
 function switchFriendTab(tab){
   document.querySelectorAll(".friend-tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.ftab===tab));
   document.querySelectorAll(".friend-tab-panel").forEach(p=>p.classList.toggle("active",p.id===`ftab-${tab}`));
+  closeFriendWishlistView();
 }
 
 document.querySelectorAll(".friend-tab-btn").forEach(btn=>{
@@ -3842,6 +4002,7 @@ function extractShareCodeFromInput(raw){
 async function loadFriendAlbumsAndBrowse(albums){
   activeFriendAlbums=albums;
   activeFriendCrateId=null;
+  activeFriendWishlist=albums.wishlist||[];
   document.getElementById("browseFriendTabBtn").style.display="";
   document.getElementById("friendSearchInput").value="";
   switchFriendTab("browse");
