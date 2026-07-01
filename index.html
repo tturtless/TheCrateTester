@@ -233,9 +233,8 @@
 
   /* AUTOCOMPLETE DROPDOWN */
   .autocomplete-wrap{position:relative;flex:1}
-  .autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--gold-dim);border-top:none;border-radius:0 0 4px 4px;z-index:50;max-height:260px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.7)}
+  .autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--gold-dim);border-top:none;border-radius:0 0 4px 4px;z-index:60;max-height:260px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.7)}
   .autocomplete-dropdown.open{display:block}
-  .autocomplete-dropdown.fixed-pos{position:fixed;border-radius:4px;border-top:1px solid var(--gold-dim);z-index:500}
   .ac-row{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border)}
   .ac-row:last-child{border-bottom:none}
   .ac-row:hover,.ac-row.focused{background:rgba(201,168,76,.08)}
@@ -246,17 +245,17 @@
   .ac-action{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);flex-shrink:0}
   .ac-spinner{padding:14px;text-align:center;font-size:12px;color:var(--cream-dim)}
   .autocomplete-wrap .add-search-input,.autocomplete-wrap .wantlist-input{width:100%}
-  .wantlist-modal{background:var(--surface);border:1px solid var(--border);border-radius:6px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;position:relative;animation:modalIn .3s cubic-bezier(.16,1,.3,1) both}
-  .wantlist-header{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .wantlist-modal{background:var(--surface);border:1px solid var(--border);border-radius:6px;max-width:600px;width:100%;max-height:90vh;overflow:visible;position:relative;display:flex;flex-direction:column;animation:modalIn .3s cubic-bezier(.16,1,.3,1) both}
+  .wantlist-header{padding:22px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
   .wantlist-header h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--cream)}
   .wantlist-count{font-family:'Courier Prime',monospace;font-size:13px;color:var(--want)}
-  .wantlist-add-row{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;gap:8px}
+  .wantlist-add-row{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;position:relative}
   .wantlist-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--cream);font-family:'Inter',sans-serif;font-size:13px;padding:8px 12px;outline:none;transition:border-color .2s}
   .wantlist-input:focus{border-color:var(--want)}
   .wantlist-input::placeholder{color:var(--cream-dim)}
   .wantlist-add-btn{background:var(--want);border:none;border-radius:3px;color:#fff;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:opacity .2s}
   .wantlist-add-btn:hover{opacity:.85}
-  .wantlist-list{padding:12px 24px 24px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+  .wantlist-list{padding:12px 24px 24px;display:flex;flex-direction:column;gap:8px;min-height:120px;overflow-y:auto;flex:1}
   .want-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:3px;transition:border-color .15s;cursor:pointer}
   .want-item:hover{border-color:#2a4a6a}
   .want-item-art{width:48px;height:48px;border-radius:2px;object-fit:cover;background:var(--groove);flex-shrink:0;display:block}
@@ -2873,50 +2872,12 @@ document.getElementById("wantlistClose").addEventListener("click",()=>{document.
 document.getElementById("wantlistModal").addEventListener("click",e=>{if(e.target===document.getElementById("wantlistModal")){document.getElementById("wantlistModal").classList.remove("open");closeAutocomplete("wantAutoDropdown");}});
 document.getElementById("wantSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(_wantSelectedItem)commitWantItem(_wantSelectedItem);else addWantManual();}});
 
-// Positions the wishlist search dropdown as a fixed-position element anchored
-// under its input, sized against the real viewport, so it's never clipped by
-// the wishlist modal's own scroll container.
-let _wantDropRAF=null;
-function positionWantDropdown(){
-  const input=document.getElementById("wantSearchInput");
-  const drop=document.getElementById("wantAutoDropdown");
-  if(!input||!drop)return;
-  // The wishlist modal has a CSS transform (from its open animation), which makes it
-  // a containing block for position:fixed descendants — so a fixed-position dropdown
-  // left inside it would still be positioned/clipped relative to the modal, not the
-  // viewport. Move it to <body> while it's open to escape that.
-  if(drop.parentElement!==document.body)document.body.appendChild(drop);
-  const rect=input.getBoundingClientRect();
-  const pad=8;
-  drop.classList.add("fixed-pos");
-  drop.style.right="auto";
-  drop.style.left=rect.left+"px";
-  drop.style.width=rect.width+"px";
-  drop.style.top=(rect.bottom+2)+"px";
-  drop.style.maxHeight=Math.max(120,window.innerHeight-rect.bottom-pad*2)+"px";
-}
-// On mobile, focusing the input and typing can trigger the on-screen keyboard to
-// animate in, which scrolls the page to keep the caret visible — a one-time position
-// capture can end up stale mid-scroll. While the dropdown is open, keep tracking the
-// input's real position every frame so it can never drift out of sync.
-function trackWantDropdownPosition(){
-  const drop=document.getElementById("wantAutoDropdown");
-  if(!drop||!drop.classList.contains("open")){_wantDropRAF=null;return;}
-  positionWantDropdown();
-  _wantDropRAF=requestAnimationFrame(trackWantDropdownPosition);
-}
-function startWantDropdownTracking(){
-  if(_wantDropRAF==null)_wantDropRAF=requestAnimationFrame(trackWantDropdownPosition);
-}
-
 // ── LIVE SEARCH FOR WANTLIST ──
 const wantDebounce=debounce(async(q)=>{
   _wantSelectedItem=null;
   if(q.length<2){closeAutocomplete("wantAutoDropdown");return;}
   const drop=document.getElementById("wantAutoDropdown");
   drop.innerHTML=`<div class="ac-spinner">Searching…</div>`;drop.classList.add("open");
-  positionWantDropdown();
-  startWantDropdownTracking();
   try{
     const results=await fetchAlbumSearch(q,8);
     buildAcDropdown(drop,results,(item)=>{
@@ -2926,17 +2887,11 @@ const wantDebounce=debounce(async(q)=>{
       // Immediately commit
       commitWantItem(item);
     },"want");
-    positionWantDropdown();
   }catch{drop.classList.remove("open");}
 },380);
 
 document.getElementById("wantSearchInput").addEventListener("input",e=>{wantDebounce(e.target.value.trim());});
 document.getElementById("wantSearchInput").addEventListener("blur",()=>setTimeout(()=>closeAutocomplete("wantAutoDropdown"),200));
-window.addEventListener("resize",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
-if(window.visualViewport){
-  window.visualViewport.addEventListener("resize",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
-  window.visualViewport.addEventListener("scroll",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
-}
 
 function commitWantItem(itunesItem){
   const year=itunesItem.releaseDate?String(itunesItem.releaseDate).slice(0,4):"";
