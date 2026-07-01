@@ -35,8 +35,6 @@
   .add-album-btn:hover{background:#DFB95C;border-color:#DFB95C}
   .share-crate-btn{background:rgba(201,168,76,.10);color:var(--gold);border:1px solid var(--gold-dim);border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
   .share-crate-btn:hover{background:var(--gold);color:var(--bg);border-color:var(--gold)}
-  .import-crate-btn{background:rgba(74,143,212,.10);color:#4a8fd4;border:1px solid #2a5a8a;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
-  .import-crate-btn:hover{background:#4a8fd4;color:#fff;border-color:#4a8fd4}
   .view-friend-btn{background:var(--surface2);color:#7fb8a0;border:1px solid #3a6a55;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:8px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:background .2s,border-color .2s;display:flex;align-items:center;gap:6px}
   .view-friend-btn:hover{background:#7fb8a0;color:#0D0D0D;border-color:#7fb8a0}
   .spin-btn{background:var(--surface2);color:#c97f4f;border:1px solid #c97f4f;border-radius:4px;font-family:'Playfair Display',serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,transform .1s;display:flex;align-items:center;gap:6px}
@@ -1823,7 +1821,9 @@ function openWantDetail(id){
   currentDetailId=null;
   setDetailModalMode("want");
   const modalArt=document.getElementById("modalArt");
-  modalArt.src=item.artUrl||getPlaceholder(item.genre||"default");modalArt.alt=item.title;
+  const wantCk=(item.artist+"|"+item.title).toLowerCase();
+  modalArt.src=caaCache[wantCk]||item.artUrl||getPlaceholder(item.genre||"default");modalArt.alt=item.title;
+  lookupCoverArt(item.artist,item.title).then(url=>{if(url&&currentWantId===id)modalArt.src=url});
   document.getElementById("modalGenreText").textContent=item.genre||"Unsorted";
   document.getElementById("modalGenre").title="";
   document.getElementById("modalGenre").onclick=null;
@@ -2842,6 +2842,7 @@ function commitWantItem(itunesItem){
     genre=g;
   }
   const item={id:Date.now(),artist:itunesItem.artistName||"Unknown Artist",title:itunesItem.collectionName||"Unknown Album",year,artUrl:itunesItem.artworkUrl100||itunesItem.artworkUrl60||"",genre,fav:false};
+  if(item.artUrl){const ck=(item.artist+"|"+item.title).toLowerCase();if(!caaCache[ck]){caaCache[ck]=item.artUrl;saveCaaCache();}}
   wantList.push(item);saveWantList();renderWantList();
   document.getElementById("wantSearchInput").value="";
   _wantSelectedItem=null;
@@ -2884,9 +2885,12 @@ function renderWantList(){
   const list=document.getElementById("wantlistList"),count=document.getElementById("wantlistCount");
   count.textContent=wantList.length===1?"1 record":`${wantList.length} records`;
   if(!wantList.length){list.innerHTML=`<div class="wantlist-empty">🎯 Your wish list is empty.<br>Add albums you're hunting for.</div>`;return}
-  list.innerHTML=wantList.map(item=>`
+  list.innerHTML=wantList.map(item=>{
+    const ck=(item.artist+"|"+item.title).toLowerCase();
+    const coverSrc=caaCache[ck]||item.artUrl||getPlaceholder(item.genre||'default');
+    return `
     <div class="want-item" data-id="${item.id}" tabindex="0" role="button" aria-label="${escAttr(item.artist)} — ${escAttr(item.title)}">
-      <img class="want-item-art" src="${escAttr(item.artUrl||getPlaceholder(item.genre||'default'))}" alt="" referrerpolicy="no-referrer">
+      <img class="want-item-art" src="${escAttr(coverSrc)}" data-artist="${escAttr(item.artist)}" data-title="${escAttr(item.title)}" data-year="${escAttr(item.year||'')}" alt="" referrerpolicy="no-referrer" loading="lazy">
       <div class="want-item-info">
         <div class="want-item-title">${escAttr(item.title)}</div>
         <div class="want-item-artist">${escAttr(item.artist)}</div>
@@ -2899,7 +2903,14 @@ function renderWantList(){
       <button class="want-fav-btn ${item.fav?'fav-active':''}" data-id="${item.id}" title="${item.fav?'Remove from favorites':'Add to favorites'}">${item.fav?'♥':'♡'}</button>
       <button class="want-move-btn" data-id="${item.id}">→ Crate</button>
       <button class="want-remove-btn" data-id="${item.id}" title="Remove">×</button>
-    </div>`).join("");
+    </div>`;
+  }).join("");
+  // Same lazy-load + auto-improve cover art pipeline the crate grid uses:
+  // shows the cached/placeholder image immediately, then swaps in a better
+  // match from iTunes (via coverObserver → coverQueue) once it scrolls into view.
+  list.querySelectorAll(".want-item-art").forEach(img=>{
+    coverObserver.observe(img);
+  });
   list.querySelectorAll(".want-item").forEach(row=>{
     const id=+row.dataset.id;
     row.addEventListener("click",e=>{if(e.target.closest("button"))return;document.getElementById("wantlistModal").classList.remove("open");openWantDetail(id)});
