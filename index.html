@@ -265,7 +265,7 @@
   .want-icon-btn{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.78);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,transform .1s;backdrop-filter:blur(4px);font-size:10px;color:var(--cream-dim);flex-shrink:0}
   .want-icon-btn:hover{background:rgba(30,30,30,.95);transform:scale(1.1)}
   .want-icon-btn.fav-active{color:var(--heart)}
-  .want-menu-popup{position:absolute;top:24px;left:-4px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;min-width:180px;max-width:calc(100vw - 48px);box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:30;overflow:hidden;animation:popIn .15s ease both}
+  .want-menu-popup{position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:4px;min-width:180px;max-width:calc(100vw - 48px);box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:400;overflow:hidden;animation:popIn .15s ease both}
   .want-item-info{flex:1;min-width:0}
   .want-item-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .want-item-artist{font-size:11px;color:var(--cream-dim)}
@@ -835,17 +835,6 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 // top of iTunes. Leave blank and Discogs is silently skipped — iTunes alone still works.
 const DISCOGS_TOKEN = ""; // <-- paste your Discogs personal access token here
 const DISCOGS_UA = "TheCrateVinylApp/1.0"; // Discogs requires a User-Agent string
-
-// Spotify Web API uses the Client Credentials flow (app-only auth, no user
-// login needed) to search. Create an app at developer.spotify.com/dashboard
-// and paste its Client ID / Secret below. Leave blank to skip this source.
-const SPOTIFY_CLIENT_ID = "";
-const SPOTIFY_CLIENT_SECRET = "";
-
-// TheAudioDB — free public API. "2" is TheAudioDB's shared/free test key
-// (rate-limited but usable with no signup); paste your own Patreon key here
-// for higher limits: https://www.theaudiodb.com/api_guide.php
-const AUDIODB_API_KEY = "2";
 
 // Normalizes either an iTunes or a Discogs result into one common shape so the
 // rest of the app (autocomplete dropdown, search results list, add/want flows)
@@ -1742,6 +1731,24 @@ function updateCondition(val){
 // Nudges a freshly-appended absolutely-positioned popup back within the
 // viewport if it would otherwise overflow left/right/bottom — needed on
 // narrow phones where cards/rows sit close to the screen edge.
+function positionFixedMenu(menu,btn){
+  const pad=8;
+  const btnRect=btn.getBoundingClientRect();
+  // Measure first (menu is already in the DOM, just invisible-position at 0,0 initially)
+  menu.style.left="0px";menu.style.top="0px";
+  const mw=menu.offsetWidth,mh=menu.offsetHeight;
+  let left=btnRect.left;
+  if(left+mw>window.innerWidth-pad)left=window.innerWidth-pad-mw;
+  if(left<pad)left=pad;
+  let top=btnRect.bottom+4;
+  if(top+mh>window.innerHeight-pad){
+    // Not enough room below — flip above the button instead
+    const above=btnRect.top-4-mh;
+    top=above>=pad?above:Math.max(pad,window.innerHeight-pad-mh);
+  }
+  menu.style.left=left+"px";
+  menu.style.top=top+"px";
+}
 function keepMenuOnScreen(menu){
   const pad=8;
   const parent=menu.offsetParent;
@@ -1864,8 +1871,9 @@ function openWantDetail(id){
   setDetailModalMode("want");
   const modalArt=document.getElementById("modalArt");
   const wantCk=(item.artist+"|"+item.title).toLowerCase();
-  modalArt.src=caaCache[wantCk]||item.artUrl||getPlaceholder(item.genre||"default");modalArt.alt=item.title;
-  lookupCoverArt(item.artist,item.title).then(url=>{if(url&&currentWantId===id)modalArt.src=url});
+  const hasCustomArt=item.artUrl&&item.artUrl.startsWith("data:");
+  modalArt.src=item.artUrl||caaCache[wantCk]||getPlaceholder(item.genre||"default");modalArt.alt=item.title;
+  if(!hasCustomArt)lookupCoverArt(item.artist,item.title).then(url=>{if(url&&currentWantId===id)modalArt.src=url});
   document.getElementById("modalGenreText").textContent=item.genre||"Unsorted";
   document.getElementById("modalGenre").title="";
   document.getElementById("modalGenre").onclick=null;
@@ -2919,7 +2927,13 @@ function removeWantItem(id){wantList=wantList.filter(x=>x.id!==id);saveWantList(
 function moveWantToCrate(id){
   const item=wantList.find(x=>x.id===id);if(!item)return;
   const album={id:nextId++,artist:item.artist,title:item.title,year:parseInt(item.year)||new Date().getFullYear(),genre:item.genre||"Classic Rock",condition:"VG+",decade:Math.floor((parseInt(item.year)||new Date().getFullYear())/10)*10};
-  if(item.artUrl){caaCache[(album.artist+"|"+album.title).toLowerCase()]=item.artUrl;saveCaaCache()}
+  if(item.artUrl){
+    // If the art is a user-uploaded photo (data URL), pin it as a custom cover on the
+    // new crate album id so it survives future cover lookups/prefetches. Otherwise
+    // (a normal fetched artwork URL) just seed the shared art cache as before.
+    if(item.artUrl.startsWith("data:")){customCovers[album.id]=item.artUrl;saveCustomCovers();}
+    else{caaCache[(album.artist+"|"+album.title).toLowerCase()]=item.artUrl;saveCaaCache()}
+  }
   vinylCollection.push(album);const ua=lsGet("crate_user_albums",[]);ua.push(album);lsSet("crate_user_albums",ua);
   if(item.fav){favorites.add(album.id);lsSet("crate_favorites",[...favorites]);}
   removeWantItem(id);buildFilters();render();
@@ -2938,7 +2952,10 @@ function renderWantList(){
   if(!wantList.length){list.innerHTML=`<div class="wantlist-empty">🎯 Your wish list is empty.<br>Add albums you're hunting for.</div>`;return}
   list.innerHTML=wantList.map(item=>{
     const ck=(item.artist+"|"+item.title).toLowerCase();
-    const coverSrc=caaCache[ck]||item.artUrl||getPlaceholder(item.genre||'default');
+    // A user-uploaded photo (data URL) must always win over the shared auto-fetched
+    // art cache, otherwise the wishlist grid keeps showing the original cover even
+    // after the user replaces it.
+    const coverSrc=item.artUrl||caaCache[ck]||getPlaceholder(item.genre||'default');
     return `
     <div class="want-item" data-id="${item.id}" tabindex="0" role="button" aria-label="${escAttr(item.artist)} — ${escAttr(item.title)}">
       <div class="want-item-art-wrap">
@@ -2965,7 +2982,10 @@ function renderWantList(){
   // shows the cached/placeholder image immediately, then swaps in a better
   // match from iTunes (via coverObserver → coverQueue) once it scrolls into view.
   list.querySelectorAll(".want-item-art").forEach(img=>{
-    coverObserver.observe(img);
+    const id=+img.closest(".want-item").dataset.id;
+    const item=wantList.find(x=>x.id===id);
+    // Don't let the auto-improve pipeline overwrite a user-uploaded photo.
+    if(!(item&&item.artUrl&&item.artUrl.startsWith("data:")))coverObserver.observe(img);
   });
   list.querySelectorAll(".want-item").forEach(row=>{
     const id=+row.dataset.id;
@@ -2997,8 +3017,8 @@ function openWantCardMenu(id,btn){
     <div class="menu-sep"></div>
     <button class="menu-item" data-action="move"><span class="menu-icon">📦</span>Move to Crate</button>
     <button class="menu-item danger" data-action="delete"><span class="menu-icon">🗑</span>Remove from Wish List</button>`;
-  btn.closest(".want-item-art-wrap").appendChild(menu);
-  keepMenuOnScreen(menu);
+  document.body.appendChild(menu);
+  positionFixedMenu(menu,btn);
   menu.querySelector("[data-action='open']").onclick=()=>{closeWantCardMenu();document.getElementById("wantlistModal").classList.remove("open");openWantDetail(id)};
   menu.querySelector("[data-action='fav']").onclick=()=>{closeWantCardMenu();toggleWantFavorite(id)};
   menu.querySelector("[data-action='about']").onclick=()=>{closeWantCardMenu();document.getElementById("wantlistModal").classList.remove("open");openWantDetail(id);setTimeout(()=>{activateTab("about");buildAboutTab(null,item)},250)};
