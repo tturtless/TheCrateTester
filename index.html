@@ -2876,6 +2876,7 @@ document.getElementById("wantSearchInput").addEventListener("keydown",e=>{if(e.k
 // Positions the wishlist search dropdown as a fixed-position element anchored
 // under its input, sized against the real viewport, so it's never clipped by
 // the wishlist modal's own scroll container.
+let _wantDropRAF=null;
 function positionWantDropdown(){
   const input=document.getElementById("wantSearchInput");
   const drop=document.getElementById("wantAutoDropdown");
@@ -2894,6 +2895,19 @@ function positionWantDropdown(){
   drop.style.top=(rect.bottom+2)+"px";
   drop.style.maxHeight=Math.max(120,window.innerHeight-rect.bottom-pad*2)+"px";
 }
+// On mobile, focusing the input and typing can trigger the on-screen keyboard to
+// animate in, which scrolls the page to keep the caret visible — a one-time position
+// capture can end up stale mid-scroll. While the dropdown is open, keep tracking the
+// input's real position every frame so it can never drift out of sync.
+function trackWantDropdownPosition(){
+  const drop=document.getElementById("wantAutoDropdown");
+  if(!drop||!drop.classList.contains("open")){_wantDropRAF=null;return;}
+  positionWantDropdown();
+  _wantDropRAF=requestAnimationFrame(trackWantDropdownPosition);
+}
+function startWantDropdownTracking(){
+  if(_wantDropRAF==null)_wantDropRAF=requestAnimationFrame(trackWantDropdownPosition);
+}
 
 // ── LIVE SEARCH FOR WANTLIST ──
 const wantDebounce=debounce(async(q)=>{
@@ -2902,7 +2916,7 @@ const wantDebounce=debounce(async(q)=>{
   const drop=document.getElementById("wantAutoDropdown");
   drop.innerHTML=`<div class="ac-spinner">Searching…</div>`;drop.classList.add("open");
   positionWantDropdown();
-  requestAnimationFrame(positionWantDropdown);
+  startWantDropdownTracking();
   try{
     const results=await fetchAlbumSearch(q,8);
     buildAcDropdown(drop,results,(item)=>{
