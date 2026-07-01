@@ -2887,12 +2887,17 @@ function positionWantDropdown(){
   if(drop.parentElement!==document.body)document.body.appendChild(drop);
   const rect=input.getBoundingClientRect();
   const pad=8;
+  // On mobile, an open keyboard can offset the visual viewport from the layout
+  // viewport that getBoundingClientRect()/position:fixed use, which can otherwise
+  // push the dropdown far from the input. Correct for that offset when present.
+  const vv=window.visualViewport;
+  const vOffsetTop=vv?vv.offsetTop:0;
   drop.classList.add("fixed-pos");
   drop.style.right="auto";
   drop.style.left=rect.left+"px";
   drop.style.width=rect.width+"px";
-  drop.style.top=(rect.bottom+2)+"px";
-  drop.style.maxHeight=Math.max(120,window.innerHeight-rect.bottom-pad*2)+"px";
+  drop.style.top=(rect.bottom-vOffsetTop+2)+"px";
+  drop.style.maxHeight=Math.max(120,window.innerHeight-(rect.bottom-vOffsetTop)-pad*2)+"px";
 }
 
 // ── LIVE SEARCH FOR WANTLIST ──
@@ -2918,6 +2923,10 @@ const wantDebounce=debounce(async(q)=>{
 document.getElementById("wantSearchInput").addEventListener("input",e=>{wantDebounce(e.target.value.trim());});
 document.getElementById("wantSearchInput").addEventListener("blur",()=>setTimeout(()=>closeAutocomplete("wantAutoDropdown"),200));
 window.addEventListener("resize",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
+  window.visualViewport.addEventListener("scroll",()=>{if(document.getElementById("wantAutoDropdown").classList.contains("open"))positionWantDropdown();});
+}
 
 function commitWantItem(itunesItem){
   const year=itunesItem.releaseDate?String(itunesItem.releaseDate).slice(0,4):"";
