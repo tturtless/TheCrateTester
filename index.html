@@ -265,7 +265,7 @@
   .want-icon-btn{width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.78);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,transform .1s;backdrop-filter:blur(4px);font-size:10px;color:var(--cream-dim);flex-shrink:0}
   .want-icon-btn:hover{background:rgba(30,30,30,.95);transform:scale(1.1)}
   .want-icon-btn.fav-active{color:var(--heart)}
-  .want-menu-popup{position:absolute;top:24px;right:-8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:30;overflow:hidden;animation:popIn .15s ease both}
+  .want-menu-popup{position:absolute;top:24px;left:-4px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;min-width:180px;max-width:calc(100vw - 48px);box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:30;overflow:hidden;animation:popIn .15s ease both}
   .want-item-info{flex:1;min-width:0}
   .want-item-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .want-item-artist{font-size:11px;color:var(--cream-dim)}
@@ -430,7 +430,8 @@
     .card-genre-tag{font-size:7px;padding:1px 4px}
     /* Detail modal */
     .detail-modal-header{grid-template-columns:1fr}
-    .detail-art-wrap{border-radius:6px 6px 0 0;aspect-ratio:16/9;max-height:200px}
+    .detail-art-wrap{border-radius:6px 6px 0 0;aspect-ratio:1;max-height:min(78vw,420px)}
+    .detail-art-wrap img{object-fit:contain}
     .form-row{grid-template-columns:1fr}
   }
   @media(max-width:400px){.grid{grid-template-columns:repeat(3,1fr)}}
@@ -1727,6 +1728,28 @@ function updateCondition(val){
 }
 
 // ── CARD CONTEXT MENU ──
+// Nudges a freshly-appended absolutely-positioned popup back within the
+// viewport if it would otherwise overflow left/right/bottom — needed on
+// narrow phones where cards/rows sit close to the screen edge.
+function keepMenuOnScreen(menu){
+  const pad=8;
+  const parent=menu.offsetParent;
+  if(!parent)return;
+  const parentRect=parent.getBoundingClientRect();
+  const rect=menu.getBoundingClientRect();
+  let newLeft=rect.left-parentRect.left;
+  if(rect.right>window.innerWidth-pad)newLeft-=(rect.right-(window.innerWidth-pad));
+  const pageLeftAfterShift=parentRect.left+newLeft;
+  if(pageLeftAfterShift<pad)newLeft+=(pad-pageLeftAfterShift);
+  menu.style.left=newLeft+"px";
+  menu.style.right="auto";
+  const rect2=menu.getBoundingClientRect();
+  if(rect2.bottom>window.innerHeight-pad){
+    const curTop=rect2.top-parentRect.top;
+    menu.style.top=(curTop-(rect2.bottom-(window.innerHeight-pad)))+"px";
+  }
+}
+
 function openCardMenu(id,btn){
   closeCardMenu();activeMenuId=id;
   const isFav=favorites.has(id);
@@ -1739,7 +1762,8 @@ function openCardMenu(id,btn){
     <button class="menu-item" data-action="edit-cover"><span class="menu-icon">📷</span>Change Cover</button>
     <div class="menu-sep"></div>
     <button class="menu-item danger" data-action="delete"><span class="menu-icon">🗑</span>Remove from Crate</button>`;
-  btn.closest(".card-art").appendChild(menu);
+  btn.closest(".card").appendChild(menu);
+  keepMenuOnScreen(menu);
   menu.querySelector("[data-action='open']").onclick=()=>{closeCardMenu();openDetail(id)};
   menu.querySelector("[data-action='fav']").onclick=()=>{closeCardMenu();toggleFavorite(id)};
   menu.querySelector("[data-action='about']").onclick=()=>{closeCardMenu();openDetail(id);setTimeout(()=>{activateTab("about");buildAboutTab(id)},250)};
@@ -2963,6 +2987,7 @@ function openWantCardMenu(id,btn){
     <button class="menu-item" data-action="move"><span class="menu-icon">📦</span>Move to Crate</button>
     <button class="menu-item danger" data-action="delete"><span class="menu-icon">🗑</span>Remove from Wish List</button>`;
   btn.closest(".want-item-art-wrap").appendChild(menu);
+  keepMenuOnScreen(menu);
   menu.querySelector("[data-action='open']").onclick=()=>{closeWantCardMenu();document.getElementById("wantlistModal").classList.remove("open");openWantDetail(id)};
   menu.querySelector("[data-action='fav']").onclick=()=>{closeWantCardMenu();toggleWantFavorite(id)};
   menu.querySelector("[data-action='about']").onclick=()=>{closeWantCardMenu();document.getElementById("wantlistModal").classList.remove("open");openWantDetail(id);setTimeout(()=>{activateTab("about");buildAboutTab(null,item)},250)};
